@@ -1,3 +1,4 @@
+ 
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
@@ -7,44 +8,68 @@ import {
   FiShoppingBag,
   FiTruck,
   FiShield,
-  FiChevronLeft,
-  FiChevronRight,
   FiStar,
   FiCheck,
 } from "react-icons/fi";
- 
-import products from "../../components/landing/components/products";
+import { useProducts } from "../../context/ProductContext";
+
+//import products from "../../components/landing/components/products";
 import ProductCard from "../../components/landing/components/ProductCard";
 import { useCart } from "../../context/CartContext";
 import { toast } from "react-hot-toast";
 
-
 export default function ProductDetails() {
+ const {
+    products,
+    loading,
+    error,
+  } = useProducts();
+   if (loading) {
+    return <div>جاري تحميل المنتجات...</div>;
+  }
+
+  if (error) {
+    return <div>{error}</div>;
+  }
   const { slug } = useParams();
   const { addToCart, openCart } = useCart();
+
+
+  // ============================================================
+  // PRODUCT
+  // ============================================================
 
   const product = useMemo(
     () =>
       products.find(
         (item) =>
-          item.slug === slug &&
-          item.status.active &&
-          item.status.published &&
-          !item.status.archived
+          item?.slug === slug &&
+          item?.status?.active &&
+          item?.status?.published &&
+          !item?.status?.archived &&
+          !item?.isDeleted
       ),
     [slug]
   );
 
+  // ============================================================
+  // STATE
+  // ============================================================
+
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedColor, setSelectedColor] = useState(null);
   const [selectedSize, setSelectedSize] = useState(null);
+  const [selectedVolume, setSelectedVolume] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [isFavorite, setIsFavorite] = useState(false);
+
+  // ============================================================
+  // PRODUCT NOT FOUND
+  // ============================================================
 
   if (!product) {
     return (
       <main className="product-not-found">
-       
         <div>
           <span>AMAROC</span>
 
@@ -61,7 +86,6 @@ export default function ProductDetails() {
         </div>
 
         <style>{`
-
           .product-not-found {
             min-height: 60vh;
             display: flex;
@@ -99,60 +123,573 @@ export default function ProductDetails() {
             color: #fff;
             text-decoration: none;
           }
-
         `}</style>
       </main>
     );
   }
 
-  const images = product.images?.length
+  // ============================================================
+  // PRODUCT TYPE
+  // ============================================================
+
+  const isPerfume =
+    product?.category?.slug === "perfumes" ||
+    !!product?.perfume;
+
+  // ============================================================
+  // VARIANTS
+  // ============================================================
+
+  const variants = Array.isArray(product?.variants)
+    ? product.variants
+    : [];
+
+  // ============================================================
+  // IMAGES
+  // ============================================================
+
+  const images = product?.images?.length
     ? product.images
-    : [
+    : product?.thumbnail
+    ? [
         {
           url: product.thumbnail,
           alt: product.name,
+          isPrimary: true,
         },
-      ];
+      ]
+    : [];
 
-  const colors = product.variants?.colors || [];
-  const sizes = product.variants?.sizes || [];
+  // ============================================================
+  // COLORS
+  // Only for normal products
+  // ============================================================
+
+  const colors = useMemo(() => {
+    if (isPerfume) {
+      return [];
+    }
+
+    return [
+      ...new Map(
+        variants
+          .filter((variant) => variant?.color)
+          .map((variant) => [
+            variant.color,
+            {
+              name: variant.color,
+              value:
+                variant.colorValue ||
+                "#111111",
+            },
+          ])
+      ).values(),
+    ];
+  }, [variants, isPerfume]);
+
+  // ============================================================
+  // SIZES
+  // Only for normal products
+  // ============================================================
+
+  const sizes = useMemo(() => {
+    if (isPerfume) {
+      return [];
+    }
+
+    return [
+      ...new Map(
+        variants
+          .filter((variant) => variant?.size)
+          .map((variant) => [
+            variant?.sizeValue ||
+              variant?.size,
+            {
+              name: variant?.size,
+              value:
+                variant?.sizeValue ||
+                variant?.size,
+            },
+          ])
+      ).values(),
+    ];
+  }, [variants, isPerfume]);
+
+  // ============================================================
+  // PERFUME VOLUMES
+  // ============================================================
+
+  const volumes = useMemo(() => {
+    if (!isPerfume) {
+      return [];
+    }
+
+    return [
+      ...new Map(
+        variants
+          .filter(
+            (variant) =>
+              variant?.volume !== undefined &&
+              variant?.volume !== null
+          )
+          .map((variant) => {
+            const volume = Number(
+              variant.volume
+            );
+
+            const volumeUnit =
+              variant?.volumeUnit || "ml";
+
+            return [
+              `${volume}-${volumeUnit}`,
+              {
+                volume,
+                volumeUnit,
+              },
+            ];
+          })
+      ).values(),
+    ].sort(
+      (a, b) => a.volume - b.volume
+    );
+  }, [variants, isPerfume]);
+
+  // ============================================================
+  // ONE SIZE
+  // ============================================================
+
+  const isOneSize =
+    !isPerfume &&
+    sizes.length === 1 &&
+    sizes[0]?.value === "ONE_SIZE";
+
+  // ============================================================
+  // EFFECTIVE SELECTED VOLUME
+  // ============================================================
+
+  const effectiveVolume = useMemo(() => {
+    if (!isPerfume || !volumes.length) {
+      return null;
+    }
+
+    if (selectedVolume !== null) {
+      const exists = volumes.some(
+        (item) =>
+          item.volume ===
+            Number(selectedVolume.volume) &&
+          item.volumeUnit ===
+            (selectedVolume.volumeUnit ||
+              "ml")
+      );
+
+      if (exists) {
+        return selectedVolume;
+      }
+    }
+
+    // Automatically select if there is
+    // only one perfume volume.
+    if (volumes.length === 1) {
+      return volumes[0];
+    }
+
+    return null;
+  }, [
+    isPerfume,
+    volumes,
+    selectedVolume,
+  ]);
+
+  // ============================================================
+  // SELECTED VARIANT
+  // ============================================================
+
+  const selectedVariant = useMemo(() => {
+    if (!variants.length) {
+      return null;
+    }
+
+    // ----------------------------------------------------------
+    // PERFUME
+    // ----------------------------------------------------------
+
+    if (isPerfume) {
+      if (!effectiveVolume) {
+        return null;
+      }
+
+      return (
+        variants.find((variant) => {
+          const variantVolume =
+            Number(variant?.volume);
+
+          const variantUnit =
+            variant?.volumeUnit || "ml";
+
+          return (
+            variantVolume ===
+              Number(
+                effectiveVolume.volume
+              ) &&
+            variantUnit ===
+              effectiveVolume.volumeUnit
+          );
+        }) || null
+      );
+    }
+
+    // ----------------------------------------------------------
+    // NORMAL PRODUCT
+    // ----------------------------------------------------------
+
+    return (
+      variants.find((variant) => {
+        const colorMatches =
+          !selectedColor ||
+          variant?.color ===
+            selectedColor?.name;
+
+        const sizeMatches =
+          !selectedSize ||
+          variant?.sizeValue ===
+            selectedSize?.value ||
+          variant?.size ===
+            selectedSize?.name;
+
+        return (
+          colorMatches &&
+          sizeMatches
+        );
+      }) || null
+    );
+  }, [
+    variants,
+    isPerfume,
+    effectiveVolume,
+    selectedColor,
+    selectedSize,
+  ]);
+
+  // ============================================================
+  // EFFECTIVE VARIANT
+  // For ONE_SIZE and automatic single volume
+  // ============================================================
+
+  const effectiveVariant = useMemo(() => {
+    if (!variants.length) {
+      return null;
+    }
+
+    if (selectedVariant) {
+      return selectedVariant;
+    }
+
+    // ----------------------------------------------------------
+    // PERFUME
+    // ----------------------------------------------------------
+
+    if (isPerfume) {
+      return null;
+    }
+
+    // ----------------------------------------------------------
+    // ONE SIZE
+    // ----------------------------------------------------------
+
+    if (isOneSize) {
+      return (
+        variants.find((variant) => {
+          return (
+            !selectedColor ||
+            variant?.color ===
+              selectedColor?.name
+          );
+        }) || null
+      );
+    }
+
+    return null;
+  }, [
+    variants,
+    selectedVariant,
+    isOneSize,
+    selectedColor,
+    isPerfume,
+  ]);
+
+  // ============================================================
+  // PRICING
+  // ============================================================
+
+  const regularPrice = Number(
+    product?.pricing?.regularPrice || 0
+  );
+
+  const salePrice =
+    product?.pricing?.salePrice !== null &&
+    product?.pricing?.salePrice !== undefined
+      ? Number(
+          product.pricing.salePrice
+        )
+      : null;
 
   const hasDiscount =
-    product.pricing.discount?.enabled &&
-    product.pricing.salePrice !== null &&
-    product.pricing.salePrice <
-      product.pricing.regularPrice;
+    product?.pricing?.discount?.enabled ===
+      true &&
+    salePrice !== null &&
+    salePrice < regularPrice;
 
-  const currentPrice = hasDiscount
-    ? product.pricing.salePrice
-    : product.pricing.regularPrice;
+  const productCurrentPrice =
+    hasDiscount
+      ? salePrice
+      : regularPrice;
 
-  const isOutOfStock =
-    product.inventory.status === "out_of_stock" ||
-    product.inventory.quantity <= 0;
+  const currentPrice =
+    effectiveVariant?.price !== undefined
+      ? Number(effectiveVariant.price)
+      : productCurrentPrice;
 
-  const isLowStock =
-    product.inventory.status === "low_stock" &&
-    product.inventory.quantity > 0;
+  const currency =
+    product?.pricing?.currency || "MAD";
 
-  const discountPercentage = hasDiscount
-    ? Math.round(
-        ((product.pricing.regularPrice -
-          product.pricing.salePrice) /
-          product.pricing.regularPrice) *
-          100
+  // ============================================================
+  // DISCOUNT
+  // ============================================================
+
+  const discountPercentage =
+    hasDiscount && regularPrice > 0
+      ? Math.round(
+          ((regularPrice - salePrice) /
+            regularPrice) *
+            100
+        )
+      : 0;
+
+  // ============================================================
+  // STOCK
+  // ============================================================
+
+  const productStock = Number(
+    product?.inventory?.quantity || 0
+  );
+
+  const variantStock = effectiveVariant
+    ? Number(
+        effectiveVariant?.quantity || 0
       )
     : 0;
 
+  const stockQuantity =
+    variants.length > 0
+      ? effectiveVariant
+        ? variantStock
+        : isPerfume
+        ? 0
+        : productStock
+      : productStock;
+
+  // ============================================================
+  // REQUIRED VARIANT SELECTION
+  // ============================================================
+
+  const isVariantSelectionRequired =
+    isPerfume
+      ? variants.length > 0 &&
+        volumes.length > 1 &&
+        !effectiveVolume
+      : variants.length > 0 &&
+        (
+          (colors.length > 0 &&
+            !selectedColor) ||
+          (
+            sizes.length > 1 &&
+            !isOneSize &&
+            !selectedSize
+          )
+        );
+
+  // ============================================================
+  // OUT OF STOCK
+  // ============================================================
+
+  const isOutOfStock =
+    isVariantSelectionRequired
+      ? false
+      : product?.inventory?.status ===
+          "out_of_stock" ||
+        stockQuantity <= 0;
+
+  // ============================================================
+  // LOW STOCK
+  // ============================================================
+
+  const isLowStock =
+    !isOutOfStock &&
+    !isVariantSelectionRequired &&
+    stockQuantity <=
+      Number(
+        product?.inventory
+          ?.lowStockThreshold || 0
+      );
+
+  // ============================================================
+  // CURRENT MAIN IMAGE
+  // ============================================================
+
+  const currentImage =
+    effectiveVariant?.image ||
+    images[selectedImage]?.url ||
+    product?.thumbnail ||
+    "";
+
+  // ============================================================
+  // SELECT COLOR
+  // ============================================================
+
+  const handleColorSelect = (color) => {
+    setSelectedColor(color);
+    setQuantity(1);
+
+    // ----------------------------------------------------------
+    // Keep selected size only if it exists
+    // for the new color.
+    // ----------------------------------------------------------
+
+    if (selectedSize) {
+      const exists = variants.some(
+        (variant) =>
+          variant?.color ===
+            color?.name &&
+          (
+            variant?.sizeValue ===
+              selectedSize?.value ||
+            variant?.size ===
+              selectedSize?.name
+          )
+      );
+
+      if (!exists) {
+        setSelectedSize(null);
+      }
+    }
+
+    // ----------------------------------------------------------
+    // Move gallery to variant image
+    // ----------------------------------------------------------
+
+    const variant = variants.find(
+      (item) =>
+        item?.color === color?.name
+    );
+
+    if (variant?.image) {
+      const imageIndex =
+        images.findIndex(
+          (image) =>
+            image?.url === variant.image
+        );
+
+      if (imageIndex !== -1) {
+        setSelectedImage(imageIndex);
+      }
+    }
+  };
+
+  // ============================================================
+  // SELECT SIZE
+  // ============================================================
+
+  const handleSizeSelect = (size) => {
+    setSelectedSize(size);
+    setQuantity(1);
+
+    const variant = variants.find(
+      (item) => {
+        const colorMatches =
+          !selectedColor ||
+          item?.color ===
+            selectedColor?.name;
+
+        const sizeMatches =
+          item?.sizeValue ===
+            size?.value ||
+          item?.size ===
+            size?.name;
+
+        return (
+          colorMatches &&
+          sizeMatches
+        );
+      }
+    );
+
+    if (variant?.image) {
+      const imageIndex =
+        images.findIndex(
+          (image) =>
+            image?.url === variant.image
+        );
+
+      if (imageIndex !== -1) {
+        setSelectedImage(imageIndex);
+      }
+    }
+  };
+
+  // ============================================================
+  // SELECT PERFUME VOLUME
+  // ============================================================
+
+  const handleVolumeSelect = (volume) => {
+    setSelectedVolume(volume);
+    setQuantity(1);
+
+    const variant = variants.find(
+      (item) =>
+        Number(item?.volume) ===
+          Number(volume?.volume) &&
+        (item?.volumeUnit || "ml") ===
+          (volume?.volumeUnit || "ml")
+    );
+
+    if (variant?.image) {
+      const imageIndex =
+        images.findIndex(
+          (image) =>
+            image?.url === variant.image
+        );
+
+      if (imageIndex !== -1) {
+        setSelectedImage(imageIndex);
+      }
+    }
+  };
+
+  // ============================================================
+  // QUANTITY
+  // ============================================================
+
   const increaseQuantity = () => {
     if (
-      product.inventory.trackQuantity &&
-      quantity >= product.inventory.quantity
+      product?.inventory?.trackQuantity &&
+      quantity >= stockQuantity
     ) {
       return;
     }
 
-    setQuantity((value) => value + 1);
+    if (
+      variants.length > 0 &&
+      !effectiveVariant
+    ) {
+      return;
+    }
+
+    setQuantity((value) =>
+      Math.min(
+        value + 1,
+        stockQuantity
+      )
+    );
   };
 
   const decreaseQuantity = () => {
@@ -161,40 +698,279 @@ export default function ProductDetails() {
     );
   };
 
+  // ============================================================
+  // ADD TO CART
+  // ============================================================
+
   const handleAddToCart = () => {
-  const result = addToCart(product, quantity, {
-    color: selectedColor,
-    size: selectedSize,
-  });
+    // ----------------------------------------------------------
+    // PERFUME
+    // ----------------------------------------------------------
 
-  if (result.success) {
-    toast.success(result.message);
-    openCart();
-  } else {
-    toast.error(result.message);
-  }
-};
+    if (isPerfume) {
+      if (
+        variants.length > 0 &&
+        volumes.length > 1 &&
+        !effectiveVolume
+      ) {
+        toast.error(
+          "يرجى اختيار الحجم."
+        );
+        return;
+      }
 
-  const relatedProducts = products
-    .filter(
-      (item) =>
-        item._id !== product._id &&
-        item.status.active &&
-        item.status.published &&
-        !item.status.archived &&
-        item.category.slug === product.category.slug
-    )
-    .slice(0, 4);
+      if (
+        variants.length > 0 &&
+        !effectiveVariant
+      ) {
+        toast.error(
+          "الحجم المختار غير متوفر."
+        );
+        return;
+      }
+
+      if (stockQuantity <= 0) {
+        toast.error(
+          "هذا الحجم غير متوفر حالياً."
+        );
+        return;
+      }
+
+      const result = addToCart(
+        product,
+        quantity,
+        {
+          volume:
+            effectiveVolume?.volume ??
+            null,
+
+          volumeUnit:
+            effectiveVolume?.volumeUnit ||
+            "ml",
+        }
+      );
+
+      if (result?.success) {
+        toast.success(
+          result.message
+        );
+
+        openCart();
+      } else {
+        toast.error(
+          result?.message ||
+            "تعذر إضافة المنتج إلى السلة."
+        );
+      }
+
+      return;
+    }
+
+    // ----------------------------------------------------------
+    // NORMAL PRODUCTS
+    // ----------------------------------------------------------
+
+    if (
+      variants.length > 0 &&
+      colors.length > 0 &&
+      !selectedColor
+    ) {
+      toast.error(
+        "يرجى اختيار اللون."
+      );
+      return;
+    }
+
+    if (
+      variants.length > 0 &&
+      sizes.length > 1 &&
+      !isOneSize &&
+      !selectedSize
+    ) {
+      toast.error(
+        "يرجى اختيار المقاس."
+      );
+      return;
+    }
+
+    if (
+      variants.length > 0 &&
+      !effectiveVariant
+    ) {
+      toast.error(
+        "التركيبة المختارة غير متوفرة."
+      );
+      return;
+    }
+
+    if (stockQuantity <= 0) {
+      toast.error(
+        "هذا الخيار غير متوفر حالياً."
+      );
+      return;
+    }
+
+    const result = addToCart(
+      product,
+      quantity,
+      {
+        color: selectedColor,
+
+        size:
+          selectedSize ||
+          (isOneSize
+            ? sizes[0]
+            : null),
+      }
+    );
+
+    if (result?.success) {
+      toast.success(
+        result.message
+      );
+
+      openCart();
+    } else {
+      toast.error(
+        result?.message ||
+          "تعذر إضافة المنتج إلى السلة."
+      );
+    }
+  };
+
+  // ============================================================
+  // RELATED PRODUCTS
+  // ============================================================
+
+  const relatedProducts = useMemo(() => {
+    const relatedIds =
+      Array.isArray(
+        product?.relatedProducts
+      )
+        ? product.relatedProducts
+        : [];
+
+    // ----------------------------------------------------------
+    // Explicit related products
+    // ----------------------------------------------------------
+
+    const explicitRelated =
+      relatedIds
+        .map((id) =>
+          products.find(
+            (item) =>
+              item?._id === id &&
+              item?.status?.active &&
+              item?.status?.published &&
+              !item?.status?.archived &&
+              !item?.isDeleted
+          )
+        )
+        .filter(Boolean);
+
+    // ----------------------------------------------------------
+    // Same category
+    // ----------------------------------------------------------
+
+    const sameCategory =
+      products.filter(
+        (item) =>
+          item?._id !== product?._id &&
+          item?.status?.active &&
+          item?.status?.published &&
+          !item?.status?.archived &&
+          !item?.isDeleted &&
+          item?.category?.slug ===
+            product?.category?.slug &&
+          !explicitRelated.some(
+            (related) =>
+              related?._id ===
+              item?._id
+          )
+      );
+
+    return [
+      ...explicitRelated,
+      ...sameCategory,
+    ].slice(0, 4);
+  }, [product]);
+
+  // ============================================================
+  // DISPLAY VALUES
+  // ============================================================
+
+  const selectedColorName =
+    selectedColor?.name || "";
+
+  const selectedSizeName =
+    selectedSize?.name ||
+    (isOneSize
+      ? sizes[0]?.name
+      : "");
+
+  const selectedVolumeLabel =
+    effectiveVolume
+      ? `${effectiveVolume.volume} ${effectiveVolume.volumeUnit}`
+      : "";
+
+  const genderLabel = {
+    men: "رجالي",
+    women: "نسائي",
+    unisex: "للجميع",
+  };
+
+  const styleLabel = {
+    sport: "رياضي",
+    classic: "كلاسيكي",
+    elegant: "أنيق",
+    casual: "كاجوال",
+    travel: "سفر",
+  };
+
+  const seasonLabel = {
+    summer: "الصيف",
+    winter: "الشتاء",
+    autumn: "الخريف",
+    spring: "الربيع",
+    all: "جميع المواسم",
+  };
+
+  const concentrationLabel = {
+    parfum: "Parfum",
+    edp: "Eau de Parfum",
+    edt: "Eau de Toilette",
+    edc: "Eau de Cologne",
+  };
+
+  const fragranceFamilyLabel = {
+    woody: "خشبية",
+    floral: "زهرية",
+    citrus: "حمضية",
+    oriental: "شرقية",
+    fresh: "منعشة",
+    aromatic: "عطرية",
+    fruity: "فاكهية",
+    gourmand: "غورماند",
+  };
+
+  const sillageLabel = {
+    light: "خفيف",
+    moderate: "متوسط",
+    strong: "قوي",
+    heavy: "قوي جداً",
+  };
+
+  // ============================================================
+  // RENDER
+  // ============================================================
 
   return (
     <main className="product-details-page">
-
       {/* =====================================================
           BREADCRUMB
       ===================================================== */}
 
       <div className="product-breadcrumb">
-
         <Link to="/">
           الرئيسية
         </Link>
@@ -208,71 +984,93 @@ export default function ProductDetails() {
         <span>/</span>
 
         <Link
-          to={`/products?category=${product.category.slug}`}
+          to={`/products?category=${product?.category?.slug}`}
         >
-          {product.category.name}
+          {product?.category?.name}
         </Link>
 
         <span>/</span>
 
         <strong>
-          {product.name}
+          {product?.name}
         </strong>
-
       </div>
-
 
       {/* =====================================================
           PRODUCT HERO
       ===================================================== */}
 
       <section className="product-main">
-
         {/* ================= IMAGE GALLERY ================= */}
 
         <div className="product-gallery">
-
           <div className="product-thumbnails">
-
-            {images.map((image, index) => (
-
-              <button
-                key={index}
-                type="button"
-                className={
-                  selectedImage === index
-                    ? "thumbnail active"
-                    : "thumbnail"
-                }
-                onClick={() =>
-                  setSelectedImage(index)
-                }
-              >
-                <img
-                  src={image.url}
-                  alt={image.alt || product.name}
-                />
-              </button>
-
-            ))}
-
+            {images.map(
+              (image, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  className={
+                    selectedImage ===
+                    index
+                      ? "thumbnail active"
+                      : "thumbnail"
+                  }
+                  onClick={() => {
+                    setSelectedImage(
+                      index
+                    );
+                  }}
+                >
+                  <img
+                    src={image?.url}
+                    alt={
+                      image?.alt ||
+                      product?.name
+                    }
+                  />
+                </button>
+              )
+            )}
           </div>
 
-
           <div className="product-main-image">
+            {/* ================= BADGES ================= */}
 
-            {hasDiscount && (
-              <span className="details-sale-badge">
-                -{discountPercentage}%
+            {product?.badge?.enabled &&
+              product?.badge?.type ===
+                "sale" && (
+                <span className="details-sale-badge">
+                  {product?.badge?.text ||
+                    `-${discountPercentage}%`}
+                </span>
+              )}
+
+            {product?.badge?.enabled &&
+              product?.badge?.type ===
+                "new" && (
+                <span className="details-new-badge">
+                  {product?.badge?.text ||
+                    "جديد"}
+                </span>
+              )}
+
+            {product?.badge?.enabled &&
+              product?.badge?.type ===
+                "bestseller" && (
+                <span className="details-bestseller-badge">
+                  {product?.badge?.text ||
+                    "الأكثر مبيعاً"}
+                </span>
+              )}
+
+            {isOutOfStock && (
+              <span className="details-out-badge">
+                نفد المخزون
               </span>
             )}
 
-            {product.status.newProduct &&
-              !hasDiscount && (
-                <span className="details-new-badge">
-                  جديد
-                </span>
-              )}
+            {/* ================= WISHLIST ================= */}
 
             <button
               type="button"
@@ -282,226 +1080,490 @@ export default function ProductDetails() {
                   : "details-wishlist"
               }
               onClick={() =>
-                setIsFavorite(!isFavorite)
+                setIsFavorite(
+                  (value) => !value
+                )
               }
               aria-label="إضافة إلى المفضلة"
             >
               <FiHeart />
             </button>
 
+            {/* ================= IMAGE ================= */}
+
             <img
-              src={images[selectedImage]?.url}
+              src={currentImage}
               alt={
-                images[selectedImage]?.alt ||
-                product.name
+                images[selectedImage]
+                  ?.alt ||
+                product?.name
               }
             />
+
+            {/* ================= STOCK ================= */}
 
             {isOutOfStock && (
               <div className="details-stock-overlay">
                 نفد المخزون
               </div>
             )}
-
           </div>
-
         </div>
 
-
-        {/* ================= PRODUCT INFO ================= */}
+        {/* =================================================
+            PRODUCT INFO
+        ================================================= */}
 
         <div className="product-details-info">
+          {/* CATEGORY */}
 
           <div className="details-category">
-            {product.category.name}
+            {product?.category?.name}
           </div>
 
+          {/* NAME */}
+
           <h1>
-            {product.name}
+            {product?.name}
           </h1>
 
+          {/* SKU */}
+
+          <div className="details-sku">
+            SKU:{" "}
+            {effectiveVariant?.sku ||
+              product?.sku}
+          </div>
+
+          {/* RATING */}
+
           <div className="details-rating">
-
             <div className="details-stars">
-
-              {Array.from({ length: 5 }).map(
-                (_, index) => (
-                  <FiStar key={index} />
-                )
-              )}
-
+              {Array.from({
+                length: 5,
+              }).map((_, index) => (
+                <FiStar
+                  key={index}
+                />
+              ))}
             </div>
 
             <span>
-              {product.rating.average}
+              {product?.rating?.average ||
+                0}
             </span>
 
             <span className="rating-count">
-              ({product.rating.count} تقييم)
+              (
+              {product?.rating?.count ||
+                0}{" "}
+              تقييم)
             </span>
-
           </div>
 
-
-          {/* ================= PRICE ================= */}
+          {/* =================================================
+              PRICE
+          ================================================= */}
 
           <div className="details-price">
-
             <strong>
-              {currentPrice.toFixed(2)}
-              {" "}
-              {product.pricing.currency}
+              {currentPrice.toFixed(2)}{" "}
+              {currency}
             </strong>
 
             {hasDiscount && (
               <>
                 <del>
-                  {product.pricing.regularPrice.toFixed(2)}
-                  {" "}
-                  {product.pricing.currency}
+                  {regularPrice.toFixed(
+                    2
+                  )}{" "}
+                  {currency}
                 </del>
 
                 <span className="discount-text">
                   وفر{" "}
                   {(
-                    product.pricing.regularPrice -
-                    product.pricing.salePrice
-                  ).toFixed(2)}
-                  {" "}
-                  {product.pricing.currency}
+                    regularPrice -
+                    salePrice
+                  ).toFixed(2)}{" "}
+                  {currency}
                 </span>
               </>
             )}
-
           </div>
 
-
-          {/* ================= SHORT DESCRIPTION ================= */}
+          {/* SHORT DESCRIPTION */}
 
           <p className="details-short-description">
-            {product.shortDescription}
+            {product?.shortDescription}
           </p>
 
+          {/* =================================================
+              PERFUME VOLUME
+          ================================================= */}
 
-          {/* ================= COLORS ================= */}
+          {isPerfume &&
+            volumes.length > 0 && (
+              <div className="option-section">
+                <div className="option-heading">
+                  <strong>
+                    الحجم
+                  </strong>
 
-          {colors.length > 0 && (
+                  {effectiveVolume && (
+                    <span>
+                      {
+                        selectedVolumeLabel
+                      }
+                    </span>
+                  )}
+                </div>
 
-            <div className="option-section">
+                <div className="size-options">
+                  {volumes.map(
+                    (volume) => {
+                      const variant =
+                        variants.find(
+                          (item) =>
+                            Number(
+                              item?.volume
+                            ) ===
+                              Number(
+                                volume.volume
+                              ) &&
+                            (item?.volumeUnit ||
+                              "ml") ===
+                              (volume.volumeUnit ||
+                                "ml")
+                        );
 
-              <div className="option-heading">
+                      const volumeHasStock =
+                        Number(
+                          variant?.quantity ||
+                            0
+                        ) > 0;
 
-                <strong>
-                  اللون
-                </strong>
+                      const isSelected =
+                        effectiveVolume
+                          ?.volume ===
+                            volume.volume &&
+                        effectiveVolume
+                          ?.volumeUnit ===
+                            volume.volumeUnit;
 
-                {selectedColor && (
+                      return (
+                        <button
+                          key={`${volume.volume}-${volume.volumeUnit}`}
+                          type="button"
+                          disabled={
+                            !volumeHasStock
+                          }
+                          className={
+                            isSelected
+                              ? "size-option active"
+                              : !volumeHasStock
+                              ? "size-option disabled"
+                              : "size-option"
+                          }
+                          onClick={() =>
+                            handleVolumeSelect(
+                              volume
+                            )
+                          }
+                        >
+                          {volume.volume}{" "}
+                          {volume.volumeUnit}
+                        </button>
+                      );
+                    }
+                  )}
+                </div>
+              </div>
+            )}
+
+          {/* =================================================
+              COLORS
+          ================================================= */}
+
+          {!isPerfume &&
+            colors.length > 0 && (
+              <div className="option-section">
+                <div className="option-heading">
+                  <strong>
+                    اللون
+                  </strong>
+
+                  {selectedColor && (
+                    <span>
+                      {selectedColorName}
+                    </span>
+                  )}
+                </div>
+
+                <div className="color-options">
+                  {colors.map(
+                    (color) => {
+                      const colorHasStock =
+                        variants.some(
+                          (variant) =>
+                            variant?.color ===
+                              color?.name &&
+                            Number(
+                              variant?.quantity ||
+                                0
+                            ) > 0
+                        );
+
+                      return (
+                        <button
+                          key={
+                            color?.name
+                          }
+                          type="button"
+                          className={
+                            selectedColor?.name ===
+                            color?.name
+                              ? "color-option active"
+                              : "color-option"
+                          }
+                          title={
+                            colorHasStock
+                              ? color?.name
+                              : `${color?.name} - غير متوفر`
+                          }
+                          onClick={() =>
+                            handleColorSelect(
+                              color
+                            )
+                          }
+                        >
+                          <span
+                            style={{
+                              backgroundColor:
+                                color?.value,
+                            }}
+                          />
+
+                          {!colorHasStock && (
+                            <i />
+                          )}
+
+                          {selectedColor?.name ===
+                            color?.name && (
+                            <FiCheck />
+                          )}
+                        </button>
+                      );
+                    }
+                  )}
+                </div>
+              </div>
+            )}
+
+          {/* =================================================
+              SIZES
+          ================================================= */}
+
+          {!isPerfume &&
+            sizes.length > 0 &&
+            !isOneSize && (
+              <div className="option-section">
+                <div className="option-heading">
+                  <strong>
+                    المقاس
+                  </strong>
+
+                  {selectedSize && (
+                    <span>
+                      {selectedSizeName}
+                    </span>
+                  )}
+                </div>
+
+                <div className="size-options">
+                  {sizes.map((size) => {
+                    const sizeHasStock =
+                      variants.some(
+                        (variant) => {
+                          const colorMatches =
+                            !selectedColor ||
+                            variant?.color ===
+                              selectedColor?.name;
+
+                          const sizeMatches =
+                            variant?.sizeValue ===
+                              size?.value ||
+                            variant?.size ===
+                              size?.name;
+
+                          return (
+                            colorMatches &&
+                            sizeMatches &&
+                            Number(
+                              variant?.quantity ||
+                                0
+                            ) > 0
+                          );
+                        }
+                      );
+
+                    return (
+                      <button
+                        key={size?.value}
+                        type="button"
+                        disabled={
+                          !sizeHasStock
+                        }
+                        className={
+                          selectedSize?.value ===
+                          size?.value
+                            ? "size-option active"
+                            : !sizeHasStock
+                            ? "size-option disabled"
+                            : "size-option"
+                        }
+                        onClick={() =>
+                          handleSizeSelect(
+                            size
+                          )
+                        }
+                      >
+                        {size?.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+          {/* =================================================
+              ONE SIZE
+          ================================================= */}
+
+          {!isPerfume &&
+            isOneSize && (
+              <div className="option-section">
+                <div className="option-heading">
+                  <strong>
+                    المقاس
+                  </strong>
+
                   <span>
-                    {selectedColor.name}
+                    موحد
+                  </span>
+                </div>
+
+                <div className="one-size-label">
+                  مقاس موحد
+                </div>
+              </div>
+            )}
+
+          {/* =================================================
+              SELECTED VARIANT
+          ================================================= */}
+
+          {effectiveVariant && (
+            <div className="selected-variant-info">
+              {effectiveVariant?.sku && (
+                <span>
+                  {effectiveVariant.sku}
+                </span>
+              )}
+
+              {isPerfume &&
+                effectiveVariant?.volume && (
+                  <span>
+                    {effectiveVariant.volume}{" "}
+                    {effectiveVariant.volumeUnit ||
+                      "ml"}
                   </span>
                 )}
 
-              </div>
-
-              <div className="color-options">
-
-                {colors.map((color) => (
-
-                  <button
-                    key={color.name}
-                    type="button"
-                    className={
-                      selectedColor?.name ===
-                      color.name
-                        ? "color-option active"
-                        : "color-option"
+              {!isPerfume &&
+                effectiveVariant?.color && (
+                  <span>
+                    {
+                      effectiveVariant.color
                     }
-                    title={color.name}
-                    onClick={() =>
-                      setSelectedColor(color)
+                  </span>
+                )}
+
+              {!isPerfume &&
+                effectiveVariant?.size && (
+                  <span>
+                    {
+                      effectiveVariant.size
                     }
-                  >
-                    <span
-                      style={{
-                        backgroundColor:
-                          color.value,
-                      }}
-                    />
-
-                    {selectedColor?.name ===
-                      color.name && (
-                      <FiCheck />
-                    )}
-
-                  </button>
-
-                ))}
-
-              </div>
-
+                  </span>
+                )}
             </div>
-
           )}
 
+          {/* =================================================
+              PERFUME INFO SUMMARY
+          ================================================= */}
 
-          {/* ================= SIZES ================= */}
-
-          {sizes.length > 0 && (
-
-            <div className="option-section">
-
-              <div className="option-heading">
-                <strong>
-                  المقاس
-                </strong>
-
-                {selectedSize && (
+          {isPerfume &&
+            product?.perfume && (
+              <div className="selected-variant-info">
+                {product.perfume
+                  ?.concentration && (
                   <span>
-                    {selectedSize.name}
+                    {
+                      concentrationLabel[
+                        product.perfume
+                          .concentration
+                      ]
+                    }
+                  </span>
+                )}
+
+                {product.perfume
+                  ?.fragranceFamily && (
+                  <span>
+                    {
+                      fragranceFamilyLabel[
+                        product.perfume
+                          .fragranceFamily
+                      ] ||
+                        product.perfume
+                          .fragranceFamily
+                    }
+                  </span>
+                )}
+
+                {product.perfume
+                  ?.longevity && (
+                  <span>
+                    ثبات{" "}
+                    {
+                      product.perfume
+                        .longevity
+                    }
                   </span>
                 )}
               </div>
+            )}
 
-              <div className="size-options">
-
-                {sizes.map((size) => (
-
-                  <button
-                    key={size.value}
-                    type="button"
-                    className={
-                      selectedSize?.value ===
-                      size.value
-                        ? "size-option active"
-                        : "size-option"
-                    }
-                    onClick={() =>
-                      setSelectedSize(size)
-                    }
-                  >
-                    {size.name}
-                  </button>
-
-                ))}
-
-              </div>
-
-            </div>
-
-          )}
-
-
-          {/* ================= STOCK ================= */}
+          {/* =================================================
+              STOCK
+          ================================================= */}
 
           <div className="availability">
-
-            {isOutOfStock ? (
+            {isVariantSelectionRequired ? (
+              <span className="select-option-stock">
+                <FiCheck />
+                اختر الخيارات لمعرفة التوفر
+              </span>
+            ) : isOutOfStock ? (
               <span className="out-stock">
                 غير متوفر حالياً
               </span>
             ) : isLowStock ? (
               <span className="low-stock">
-                متبقي {product.inventory.quantity} فقط
+                متبقي{" "}
+                {stockQuantity} فقط
               </span>
             ) : (
               <span className="in-stock">
@@ -509,21 +1571,20 @@ export default function ProductDetails() {
                 متوفر في المخزون
               </span>
             )}
-
           </div>
 
-
-          {/* ================= PURCHASE ================= */}
+          {/* =================================================
+              PURCHASE
+          ================================================= */}
 
           {!isOutOfStock && (
-
             <div className="purchase-row">
-
               <div className="quantity-selector">
-
                 <button
                   type="button"
-                  onClick={decreaseQuantity}
+                  onClick={
+                    decreaseQuantity
+                  }
                   aria-label="تقليل الكمية"
                 >
                   <FiMinus />
@@ -535,35 +1596,47 @@ export default function ProductDetails() {
 
                 <button
                   type="button"
-                  onClick={increaseQuantity}
+                  onClick={
+                    increaseQuantity
+                  }
                   aria-label="زيادة الكمية"
+                  disabled={
+                    isVariantSelectionRequired ||
+                    quantity >=
+                      stockQuantity
+                  }
                 >
                   <FiPlus />
                 </button>
-
               </div>
 
-              
               <button
-  type="button"
-  className="add-to-cart"
-  onClick={handleAddToCart}
->
-  <FiShoppingBag />
-  إضافة إلى السلة
-</button>
+                type="button"
+                className="add-to-cart"
+                onClick={
+                  handleAddToCart
+                }
+                disabled={
+                  isVariantSelectionRequired
+                }
+              >
+                <FiShoppingBag />
 
+                {isVariantSelectionRequired
+                  ? isPerfume
+                    ? "اختر الحجم أولاً"
+                    : "اختر الخيارات أولاً"
+                  : "إضافة إلى السلة"}
+              </button>
             </div>
-
           )}
 
-
-          {/* ================= SERVICE FEATURES ================= */}
+          {/* =================================================
+              SERVICES
+          ================================================= */}
 
           <div className="product-services">
-
             <div className="service-item">
-
               <FiTruck />
 
               <div>
@@ -572,15 +1645,14 @@ export default function ProductDetails() {
                 </strong>
 
                 <span>
-                  {product.shipping.estimatedDelivery}
+                  {product?.shipping
+                    ?.estimatedDelivery ||
+                    "2-4 أيام"}
                 </span>
               </div>
-
             </div>
 
-
             <div className="service-item">
-
               <FiShield />
 
               <div>
@@ -592,26 +1664,20 @@ export default function ProductDetails() {
                   معاملات آمنة وموثوقة
                 </span>
               </div>
-
             </div>
-
           </div>
-
         </div>
-
       </section>
 
-
       {/* =====================================================
-          PRODUCT DESCRIPTION
+          PRODUCT INFORMATION
       ===================================================== */}
 
       <section className="product-information">
-
         <div className="information-content">
+          {/* ================= DESCRIPTION ================= */}
 
           <div className="information-column">
-
             <span className="information-eyebrow">
               PRODUCT DETAILS
             </span>
@@ -621,103 +1687,477 @@ export default function ProductDetails() {
             </h2>
 
             <p>
-              {product.description}
+              {product?.description}
             </p>
 
+            {/* FEATURES */}
+
+            {product?.features?.length >
+              0 && (
+              <div className="features-block">
+                <h3>
+                  المميزات
+                </h3>
+
+                <div className="features-list">
+                  {product.features.map(
+                    (
+                      feature,
+                      index
+                    ) => (
+                      <div
+                        className="feature-item"
+                        key={index}
+                      >
+                        <FiCheck />
+
+                        <span>
+                          {feature}
+                        </span>
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
+          {/* ================= SPECIFICATIONS ================= */}
 
           <div className="specifications">
-
             <h3>
               المواصفات
             </h3>
 
-            <div className="specification-row">
-              <span>العلامة التجارية</span>
-              <strong>{product.brand}</strong>
-            </div>
+            {/* BRAND */}
 
             <div className="specification-row">
-              <span>المادة</span>
-              <strong>{product.details.material}</strong>
-            </div>
+              <span>
+                العلامة التجارية
+              </span>
 
-            <div className="specification-row">
-              <span>الجنس</span>
               <strong>
-                {product.details.gender === "unisex"
-                  ? "للجميع"
-                  : product.details.gender}
+                {product?.brand}
               </strong>
             </div>
 
-            <div className="specification-row">
-              <span>النمط</span>
-              <strong>{product.details.style}</strong>
-            </div>
+            {/* SKU */}
 
             <div className="specification-row">
-              <span>الموسم</span>
-              <strong>{product.details.season}</strong>
-            </div>
+              <span>
+                SKU
+              </span>
 
-            <div className="specification-row">
-              <span>بلد المنشأ</span>
               <strong>
-                {product.details.countryOfOrigin}
+                {effectiveVariant?.sku ||
+                  product?.sku}
               </strong>
             </div>
 
-            {product.variants?.dimensions && (
+            {/* =================================================
+                PERFUME SPECIFICATIONS
+            ================================================= */}
+
+            {isPerfume &&
+              product?.perfume && (
+                <>
+                  {product.perfume
+                    ?.gender && (
+                    <div className="specification-row">
+                      <span>
+                        الجنس
+                      </span>
+
+                      <strong>
+                        {genderLabel[
+                          product
+                            .perfume
+                            .gender
+                        ] ||
+                          product
+                            .perfume
+                            .gender}
+                      </strong>
+                    </div>
+                  )}
+
+                  {product.perfume
+                    ?.concentration && (
+                    <div className="specification-row">
+                      <span>
+                        التركيز
+                      </span>
+
+                      <strong>
+                        {concentrationLabel[
+                          product
+                            .perfume
+                            .concentration
+                        ] ||
+                          product
+                            .perfume
+                            .concentration}
+                      </strong>
+                    </div>
+                  )}
+
+                  {product.perfume
+                    ?.fragranceFamily && (
+                    <div className="specification-row">
+                      <span>
+                        العائلة العطرية
+                      </span>
+
+                      <strong>
+                        {fragranceFamilyLabel[
+                          product
+                            .perfume
+                            .fragranceFamily
+                        ] ||
+                          product
+                            .perfume
+                            .fragranceFamily}
+                      </strong>
+                    </div>
+                  )}
+
+                  {product.perfume
+                    ?.longevity && (
+                    <div className="specification-row">
+                      <span>
+                        مدة الثبات
+                      </span>
+
+                      <strong>
+                        {
+                          product
+                            .perfume
+                            .longevity
+                        }
+                      </strong>
+                    </div>
+                  )}
+
+                  {product.perfume
+                    ?.sillage && (
+                    <div className="specification-row">
+                      <span>
+                        الفوحان
+                      </span>
+
+                      <strong>
+                        {sillageLabel[
+                          product
+                            .perfume
+                            .sillage
+                        ] ||
+                          product
+                            .perfume
+                            .sillage}
+                      </strong>
+                    </div>
+                  )}
+
+                  {product.perfume
+                    ?.season?.length >
+                    0 && (
+                    <div className="specification-row">
+                      <span>
+                        الموسم
+                      </span>
+
+                      <strong>
+                        {product.perfume.season
+                          .map(
+                            (season) =>
+                              seasonLabel[
+                                season
+                              ] ||
+                              season
+                          )
+                          .join("، ")}
+                      </strong>
+                    </div>
+                  )}
+
+                  {product.perfume
+                    ?.occasion?.length >
+                    0 && (
+                    <div className="specification-row">
+                      <span>
+                        المناسبة
+                      </span>
+
+                      <strong>
+                        {product.perfume.occasion.join(
+                          "، "
+                        )}
+                      </strong>
+                    </div>
+                  )}
+
+                  {product.perfume
+                    ?.topNotes?.length >
+                    0 && (
+                    <div className="specification-row">
+                      <span>
+                        النوتات العليا
+                      </span>
+
+                      <strong>
+                        {product.perfume.topNotes.join(
+                          "، "
+                        )}
+                      </strong>
+                    </div>
+                  )}
+
+                  {product.perfume
+                    ?.middleNotes?.length >
+                    0 && (
+                    <div className="specification-row">
+                      <span>
+                        النوتات الوسطى
+                      </span>
+
+                      <strong>
+                        {product.perfume.middleNotes.join(
+                          "، "
+                        )}
+                      </strong>
+                    </div>
+                  )}
+
+                  {product.perfume
+                    ?.baseNotes?.length >
+                    0 && (
+                    <div className="specification-row">
+                      <span>
+                        النوتات الأساسية
+                      </span>
+
+                      <strong>
+                        {product.perfume.baseNotes.join(
+                          "، "
+                        )}
+                      </strong>
+                    </div>
+                  )}
+                </>
+              )}
+
+            {/* =================================================
+                NORMAL PRODUCT SPECIFICATIONS
+            ================================================= */}
+
+            {product?.details
+              ?.material && (
               <div className="specification-row">
-                <span>الأبعاد</span>
+                <span>
+                  المادة
+                </span>
 
                 <strong>
                   {
-                    product.variants.dimensions.length
+                    product.details
+                      .material
                   }
-                  {" × "}
-                  {
-                    product.variants.dimensions.width
-                  }
-                  {" × "}
-                  {
-                    product.variants.dimensions.height
-                  }
-                  {" "}
-                  {product.variants.dimensions.unit}
                 </strong>
               </div>
             )}
 
-            {product.variants?.weight && (
+            {!isPerfume &&
+              product?.details
+                ?.gender && (
+                <div className="specification-row">
+                  <span>
+                    الجنس
+                  </span>
+
+                  <strong>
+                    {genderLabel[
+                      product.details
+                        .gender
+                    ] ||
+                      product.details
+                        .gender}
+                  </strong>
+                </div>
+              )}
+
+            {!isPerfume &&
+              product?.details
+                ?.style && (
+                <div className="specification-row">
+                  <span>
+                    النمط
+                  </span>
+
+                  <strong>
+                    {styleLabel[
+                      product.details
+                        .style
+                    ] ||
+                      product.details
+                        .style}
+                  </strong>
+                </div>
+              )}
+
+            {!isPerfume &&
+              product?.details
+                ?.season && (
+                <div className="specification-row">
+                  <span>
+                    الموسم
+                  </span>
+
+                  <strong>
+                    {seasonLabel[
+                      product.details
+                        .season
+                    ] ||
+                      product.details
+                        .season}
+                  </strong>
+                </div>
+              )}
+
+            {product?.details
+              ?.countryOfOrigin && (
               <div className="specification-row">
-                <span>الوزن</span>
+                <span>
+                  بلد المنشأ
+                </span>
 
                 <strong>
-                  {product.variants.weight.value}
-                  {" "}
-                  {product.variants.weight.unit}
+                  {
+                    product.details
+                      .countryOfOrigin
+                  }
                 </strong>
               </div>
             )}
 
+            {product?.details
+              ?.warranty && (
+              <div className="specification-row">
+                <span>
+                  الضمان
+                </span>
+
+                <strong>
+                  {
+                    product.details
+                      .warranty
+                  }
+                </strong>
+              </div>
+            )}
+
+            {/* DIMENSIONS */}
+
+            {product?.dimensions && (
+              <div className="specification-row">
+                <span>
+                  الأبعاد
+                </span>
+
+                <strong>
+                  {
+                    product.dimensions
+                      .length
+                  }
+                  {" × "}
+                  {
+                    product.dimensions
+                      .width
+                  }
+                  {" × "}
+                  {
+                    product.dimensions
+                      .height
+                  }
+                  {" "}
+                  {
+                    product.dimensions
+                      .unit
+                  }
+                </strong>
+              </div>
+            )}
+
+            {/* WEIGHT */}
+
+            {product?.weight && (
+              <div className="specification-row">
+                <span>
+                  الوزن
+                </span>
+
+                <strong>
+                  {
+                    product.weight
+                      .value
+                  }{" "}
+                  {
+                    product.weight
+                      .unit
+                  }
+                </strong>
+              </div>
+            )}
           </div>
-
         </div>
-
       </section>
 
+      {/* =====================================================
+          CARE INSTRUCTIONS
+      ===================================================== */}
+
+      {product?.careInstructions
+        ?.length > 0 && (
+        <section className="care-section">
+          <div className="care-content">
+            <div>
+              <span className="information-eyebrow">
+                CARE INSTRUCTIONS
+              </span>
+
+              <h2>
+                تعليمات العناية
+              </h2>
+            </div>
+
+            <div className="care-list">
+              {product.careInstructions.map(
+                (
+                  instruction,
+                  index
+                ) => (
+                  <div
+                    className="care-item"
+                    key={index}
+                  >
+                    <FiCheck />
+
+                    <span>
+                      {instruction}
+                    </span>
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* =====================================================
           SHIPPING
       ===================================================== */}
 
       <section className="shipping-section">
-
         <div className="shipping-box">
-
           <FiTruck />
 
           <div>
@@ -726,29 +2166,40 @@ export default function ProductDetails() {
             </strong>
 
             <p>
-              {product.shipping.available
-                ? product.shipping.freeShipping
+              {product?.shipping
+                ?.available
+                ? product.shipping
+                    ?.freeShipping
                   ? "الشحن مجاني لهذا المنتج."
-                  : `تكلفة الشحن ${product.shipping.shippingPrice} ${product.pricing.currency}.`
+                  : `تكلفة الشحن ${Number(
+                      product.shipping
+                        ?.defaultPrice ||
+                        0
+                    ).toFixed(2)} ${currency}.`
                 : "الشحن غير متوفر لهذا المنتج حالياً."}
             </p>
+
+            {product?.shipping
+              ?.estimatedDelivery && (
+              <span className="shipping-delivery">
+                مدة التوصيل المتوقعة:{" "}
+                {
+                  product.shipping
+                    .estimatedDelivery
+                }
+              </span>
+            )}
           </div>
-
         </div>
-
       </section>
-
 
       {/* =====================================================
           RELATED PRODUCTS
       ===================================================== */}
 
       {relatedProducts.length > 0 && (
-
         <section className="related-products">
-
           <div className="related-header">
-
             <div>
               <span>
                 AMAROC
@@ -762,35 +2213,37 @@ export default function ProductDetails() {
             <Link to="/products">
               عرض جميع المنتجات
             </Link>
-
           </div>
 
           <div className="related-grid">
-
-            {relatedProducts.map((item) => (
-
-              <Link
-                key={item._id}
-                to={`/products/${item.slug}`}
-                className="related-card-link"
-              >
-                <ProductCard product={item} />
-              </Link>
-
-            ))}
-
+            {relatedProducts.map(
+              (item) => (
+                <Link
+                  key={item?._id}
+                  to={`/products/${item?.slug}`}
+                  className="related-card-link"
+                >
+                  <ProductCard
+                    product={item}
+                  />
+                </Link>
+              )
+            )}
           </div>
-
         </section>
-
       )}
 
+
+
+      {/* =====================================================
+          STYLES
+      ===================================================== */}
 
       <style>{`
 
         /* =====================================================
            PRODUCT DETAILS PAGE
-           ===================================================== */
+        ===================================================== */
 
         .product-details-page {
           width: 100%;
@@ -802,7 +2255,7 @@ export default function ProductDetails() {
 
         /* =====================================================
            BREADCRUMB
-           ===================================================== */
+        ===================================================== */
 
         .product-breadcrumb {
           width: min(1200px, calc(100% - 48px));
@@ -828,19 +2281,23 @@ export default function ProductDetails() {
         .product-breadcrumb strong {
           color: #222;
           font-weight: 500;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
 
         /* =====================================================
            MAIN PRODUCT
-           ===================================================== */
+        ===================================================== */
 
         .product-main {
           width: min(1200px, calc(100% - 48px));
           margin: 0 auto;
           padding: 20px 0 90px;
           display: grid;
-          grid-template-columns: minmax(0, 1.08fr) minmax(380px, .92fr);
+          grid-template-columns:
+            minmax(0, 1.08fr)
+            minmax(380px, .92fr);
           gap: 70px;
           align-items: start;
         }
@@ -848,11 +2305,12 @@ export default function ProductDetails() {
 
         /* =====================================================
            GALLERY
-           ===================================================== */
+        ===================================================== */
 
         .product-gallery {
           display: grid;
-          grid-template-columns: 82px minmax(0, 1fr);
+          grid-template-columns:
+            82px minmax(0, 1fr);
           direction: ltr;
           gap: 14px;
         }
@@ -894,7 +2352,7 @@ export default function ProductDetails() {
 
         /* =====================================================
            MAIN IMAGE
-           ===================================================== */
+        ===================================================== */
 
         .product-main-image {
           position: relative;
@@ -910,8 +2368,15 @@ export default function ProductDetails() {
           display: block;
         }
 
+
+        /* =====================================================
+           BADGES
+        ===================================================== */
+
         .details-sale-badge,
-        .details-new-badge {
+        .details-new-badge,
+        .details-bestseller-badge,
+        .details-out-badge {
           position: absolute;
           top: 16px;
           right: 16px;
@@ -921,20 +2386,31 @@ export default function ProductDetails() {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          background: #b42318;
           color: #fff;
           font-size: 11px;
           font-weight: 600;
+        }
+
+        .details-sale-badge {
+          background: #b42318;
         }
 
         .details-new-badge {
           background: #111;
         }
 
+        .details-bestseller-badge {
+          background: #111;
+        }
+
+        .details-out-badge {
+          background: #555;
+        }
+
 
         /* =====================================================
            WISHLIST
-           ===================================================== */
+        ===================================================== */
 
         .details-wishlist {
           position: absolute;
@@ -972,7 +2448,7 @@ export default function ProductDetails() {
 
         /* =====================================================
            STOCK OVERLAY
-           ===================================================== */
+        ===================================================== */
 
         .details-stock-overlay {
           position: absolute;
@@ -990,7 +2466,7 @@ export default function ProductDetails() {
 
         /* =====================================================
            DETAILS INFO
-           ===================================================== */
+        ===================================================== */
 
         .product-details-info {
           padding-top: 5px;
@@ -1010,10 +2486,18 @@ export default function ProductDetails() {
           font-weight: 650;
         }
 
+        .details-sku {
+          margin-top: 9px;
+          color: #999;
+          font-size: 10px;
+          direction: ltr;
+          text-align: right;
+        }
+
 
         /* =====================================================
            RATING
-           ===================================================== */
+        ===================================================== */
 
         .details-rating {
           margin-top: 15px;
@@ -1043,7 +2527,7 @@ export default function ProductDetails() {
 
         /* =====================================================
            PRICE
-           ===================================================== */
+        ===================================================== */
 
         .details-price {
           margin-top: 25px;
@@ -1073,7 +2557,7 @@ export default function ProductDetails() {
 
         /* =====================================================
            DESCRIPTION
-           ===================================================== */
+        ===================================================== */
 
         .details-short-description {
           margin: 22px 0 0;
@@ -1087,7 +2571,7 @@ export default function ProductDetails() {
 
         /* =====================================================
            OPTIONS
-           ===================================================== */
+        ===================================================== */
 
         .option-section {
           padding: 22px 0;
@@ -1106,6 +2590,11 @@ export default function ProductDetails() {
           color: #777;
           font-weight: 400;
         }
+
+
+        /* =====================================================
+           COLORS
+        ===================================================== */
 
         .color-options {
           display: flex;
@@ -1143,8 +2632,27 @@ export default function ProductDetails() {
           width: 14px;
           height: 14px;
           color: #fff;
-          filter: drop-shadow(0 1px 2px rgba(0,0,0,.5));
+          filter: drop-shadow(
+            0 1px 2px rgba(0,0,0,.5)
+          );
+          z-index: 2;
         }
+
+        .color-option i {
+          position: absolute;
+          width: 2px;
+          height: 36px;
+          background: #b42318;
+          top: 0;
+          left: 50%;
+          transform: rotate(45deg);
+          z-index: 2;
+        }
+
+
+        /* =====================================================
+           SIZES
+        ===================================================== */
 
         .size-options {
           display: flex;
@@ -1172,10 +2680,52 @@ export default function ProductDetails() {
           color: #fff;
         }
 
+        .size-option.disabled,
+        .size-option:disabled {
+          color: #aaa;
+          background: #f7f7f7;
+          border-color: #e5e5e5;
+          text-decoration: line-through;
+          cursor: not-allowed;
+        }
+
+        .one-size-label {
+          display: inline-flex;
+          align-items: center;
+          min-height: 40px;
+          padding: 0 18px;
+          border: 1px solid #111;
+          background: #111;
+          color: #fff;
+          font-size: 12px;
+        }
+
+
+        /* =====================================================
+           SELECTED VARIANT
+        ===================================================== */
+
+        .selected-variant-info {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 7px;
+          margin-top: 14px;
+        }
+
+        .selected-variant-info span {
+          display: inline-flex;
+          align-items: center;
+          min-height: 27px;
+          padding: 0 9px;
+          background: #f5f5f5;
+          color: #666;
+          font-size: 10px;
+        }
+
 
         /* =====================================================
            AVAILABILITY
-           ===================================================== */
+        ===================================================== */
 
         .availability {
           padding-top: 18px;
@@ -1183,7 +2733,8 @@ export default function ProductDetails() {
 
         .in-stock,
         .low-stock,
-        .out-stock {
+        .out-stock,
+        .select-option-stock {
           display: inline-flex;
           align-items: center;
           gap: 6px;
@@ -1200,7 +2751,12 @@ export default function ProductDetails() {
           color: #b42318;
         }
 
-        .in-stock svg {
+        .select-option-stock {
+          color: #777;
+        }
+
+        .in-stock svg,
+        .select-option-stock svg {
           width: 14px;
           height: 14px;
         }
@@ -1208,19 +2764,21 @@ export default function ProductDetails() {
 
         /* =====================================================
            PURCHASE
-           ===================================================== */
+        ===================================================== */
 
         .purchase-row {
           margin-top: 16px;
           display: grid;
-          grid-template-columns: 115px minmax(0,1fr);
+          grid-template-columns:
+            115px minmax(0,1fr);
           gap: 10px;
         }
 
         .quantity-selector {
           height: 52px;
           display: grid;
-          grid-template-columns: 34px 1fr 34px;
+          grid-template-columns:
+            34px 1fr 34px;
           align-items: center;
           border: 1px solid #ddd;
         }
@@ -1238,6 +2796,11 @@ export default function ProductDetails() {
 
         .quantity-selector button:hover {
           background: #f5f5f5;
+        }
+
+        .quantity-selector button:disabled {
+          color: #bbb;
+          cursor: not-allowed;
         }
 
         .quantity-selector svg {
@@ -1263,11 +2826,18 @@ export default function ProductDetails() {
           font-size: 13px;
           font-weight: 600;
           cursor: pointer;
-          transition: background .2s ease;
+          transition:
+            background .2s ease,
+            opacity .2s ease;
         }
 
         .add-to-cart:hover {
           background: #292929;
+        }
+
+        .add-to-cart:disabled {
+          opacity: .55;
+          cursor: not-allowed;
         }
 
         .add-to-cart svg {
@@ -1278,7 +2848,7 @@ export default function ProductDetails() {
 
         /* =====================================================
            SERVICES
-           ===================================================== */
+        ===================================================== */
 
         .product-services {
           margin-top: 28px;
@@ -1323,7 +2893,7 @@ export default function ProductDetails() {
 
         /* =====================================================
            INFORMATION
-           ===================================================== */
+        ===================================================== */
 
         .product-information {
           border-top: 1px solid #e9e9e9;
@@ -1361,6 +2931,46 @@ export default function ProductDetails() {
           line-height: 2.1;
         }
 
+
+        /* =====================================================
+           FEATURES
+        ===================================================== */
+
+        .features-block {
+          margin-top: 35px;
+        }
+
+        .features-block h3 {
+          margin: 0 0 18px;
+          font-size: 17px;
+        }
+
+        .features-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .feature-item {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          color: #555;
+          font-size: 13px;
+        }
+
+        .feature-item svg {
+          width: 15px;
+          height: 15px;
+          color: #267a3d;
+          flex-shrink: 0;
+        }
+
+
+        /* =====================================================
+           SPECIFICATIONS
+        ===================================================== */
+
         .specifications h3 {
           margin: 0 0 18px;
           font-size: 17px;
@@ -1383,12 +2993,61 @@ export default function ProductDetails() {
         .specification-row strong {
           color: #222;
           font-weight: 500;
+          text-align: left;
+        }
+
+
+        /* =====================================================
+           CARE
+        ===================================================== */
+
+        .care-section {
+          border-bottom: 1px solid #e9e9e9;
+          background: #fff;
+        }
+
+        .care-content {
+          width: min(1200px, calc(100% - 48px));
+          margin: 0 auto;
+          padding: 60px 0;
+          display: grid;
+          grid-template-columns: .8fr 1.2fr;
+          gap: 100px;
+        }
+
+        .care-content h2 {
+          margin: 10px 0 0;
+          font-size: 27px;
+          font-weight: 650;
+        }
+
+        .care-list {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 14px 25px;
+        }
+
+        .care-item {
+          display: flex;
+          align-items: flex-start;
+          gap: 9px;
+          color: #666;
+          font-size: 13px;
+          line-height: 1.8;
+        }
+
+        .care-item svg {
+          width: 15px;
+          height: 15px;
+          margin-top: 4px;
+          color: #267a3d;
+          flex-shrink: 0;
         }
 
 
         /* =====================================================
            SHIPPING
-           ===================================================== */
+        ===================================================== */
 
         .shipping-section {
           width: min(1200px, calc(100% - 48px));
@@ -1421,10 +3080,17 @@ export default function ProductDetails() {
           font-size: 12px;
         }
 
+        .shipping-delivery {
+          display: block;
+          margin-top: 6px;
+          color: #999;
+          font-size: 11px;
+        }
+
 
         /* =====================================================
            RELATED PRODUCTS
-           ===================================================== */
+        ===================================================== */
 
         .related-products {
           width: min(1200px, calc(100% - 48px));
@@ -1474,7 +3140,7 @@ export default function ProductDetails() {
 
         /* =====================================================
            TABLET
-           ===================================================== */
+        ===================================================== */
 
         @media (max-width: 1000px) {
 
@@ -1491,6 +3157,10 @@ export default function ProductDetails() {
             gap: 50px;
           }
 
+          .care-content {
+            gap: 50px;
+          }
+
           .related-grid {
             grid-template-columns:
               repeat(3, minmax(0, 1fr));
@@ -1501,14 +3171,12 @@ export default function ProductDetails() {
 
         /* =====================================================
            MOBILE
-           ===================================================== */
+        ===================================================== */
 
         @media (max-width: 700px) {
-           
 
           .product-breadcrumb {
             width: calc(100% - 32px);
-           
             padding: 115px 0 20px;
             overflow: hidden;
             white-space: nowrap;
@@ -1521,7 +3189,8 @@ export default function ProductDetails() {
           }
 
           .product-gallery {
-            grid-template-columns: 60px minmax(0,1fr);
+            grid-template-columns:
+              60px minmax(0,1fr);
             gap: 8px;
           }
 
@@ -1539,7 +3208,8 @@ export default function ProductDetails() {
           }
 
           .purchase-row {
-            grid-template-columns: 100px minmax(0,1fr);
+            grid-template-columns:
+              100px minmax(0,1fr);
           }
 
           .product-services {
@@ -1561,6 +3231,17 @@ export default function ProductDetails() {
             padding: 55px 0;
             grid-template-columns: 1fr;
             gap: 45px;
+          }
+
+          .care-content {
+            width: calc(100% - 32px);
+            padding: 50px 0;
+            grid-template-columns: 1fr;
+            gap: 35px;
+          }
+
+          .care-list {
+            grid-template-columns: 1fr;
           }
 
           .shipping-section {
@@ -1593,12 +3274,13 @@ export default function ProductDetails() {
 
         /* =====================================================
            SMALL MOBILE
-           ===================================================== */
+        ===================================================== */
 
         @media (max-width: 420px) {
 
           .product-gallery {
-            grid-template-columns: 52px minmax(0,1fr);
+            grid-template-columns:
+              52px minmax(0,1fr);
           }
 
           .thumbnail {
@@ -1619,7 +3301,9 @@ export default function ProductDetails() {
           }
 
           .details-sale-badge,
-          .details-new-badge {
+          .details-new-badge,
+          .details-bestseller-badge,
+          .details-out-badge {
             top: 10px;
             right: 10px;
             min-height: 26px;
@@ -1633,7 +3317,16 @@ export default function ProductDetails() {
         }
 
       `}</style>
-
     </main>
   );
 }
+ 
+
+
+
+
+
+
+
+
+

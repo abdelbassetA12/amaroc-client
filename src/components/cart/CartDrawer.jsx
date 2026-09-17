@@ -157,125 +157,147 @@ export default function CartDrawer() {
             </div>
           ) : (
             <div className="cart-items">
-              {cartItems.map((item) => (
-                <article
-                  className="cart-item"
-                  key={item.itemKey}
-                >
-                  {/* IMAGE */}
+              {cartItems.map((item) => {
+                const itemVolume =
+                  item?.volume ??
+                  item?.variant?.volume ??
+                  null;
 
-                  <Link
-                    to={`/products/${item.slug}`}
-                    className="cart-item-image"
-                    onClick={closeCart}
+                const itemVolumeUnit =
+                  item?.volumeUnit ||
+                  item?.variant?.volumeUnit ||
+                  "ml";
+
+                return (
+                  <article
+                    className="cart-item"
+                    key={item.itemKey}
                   >
-                    <img
-                      src={item.thumbnail}
-                      alt={item.name}
-                    />
-                  </Link>
+                    {/* IMAGE */}
 
-                  {/* INFO */}
+                    <Link
+                      to={`/products/${item.slug}`}
+                      className="cart-item-image"
+                      onClick={closeCart}
+                    >
+                      <img
+                        src={item.thumbnail}
+                        alt={item.name}
+                      />
+                    </Link>
 
-                  <div className="cart-item-info">
-                    <div className="cart-item-top">
-                      <Link
-                        to={`/products/${item.slug}`}
-                        className="cart-item-name"
-                        onClick={closeCart}
-                      >
-                        {item.name}
-                      </Link>
+                    {/* INFO */}
 
-                      <button
-                        type="button"
-                        className="cart-remove"
-                        onClick={() =>
-                          removeFromCart(
-                            item.itemKey
-                          )
-                        }
-                        aria-label={`حذف ${item.name}`}
-                      >
-                        <FiTrash2 />
-                      </button>
-                    </div>
-
-                    {/* OPTIONS */}
-
-                    {(item.color || item.size) && (
-                      <div className="cart-item-options">
-                        {item.color?.name && (
-                          <span>
-                            اللون:{" "}
-                            {item.color.name}
-                          </span>
-                        )}
-
-                        {item.size?.name && (
-                          <span>
-                            المقاس:{" "}
-                            {item.size.name}
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    {/* PRICE */}
-
-                    <div className="cart-item-price">
-                      {item.price.toFixed(2)}{" "}
-                      {item.currency}
-                    </div>
-
-                    {/* QUANTITY */}
-
-                    <div className="cart-item-bottom">
-                      <div className="quantity-control">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            decreaseQuantity(
-                              item.itemKey
-                            )
-                          }
-                          aria-label="تقليل الكمية"
+                    <div className="cart-item-info">
+                      <div className="cart-item-top">
+                        <Link
+                          to={`/products/${item.slug}`}
+                          className="cart-item-name"
+                          onClick={closeCart}
                         >
-                          <FiMinus />
-                        </button>
-
-                        <span>
-                          {item.quantity}
-                        </span>
+                          {item.name}
+                        </Link>
 
                         <button
                           type="button"
+                          className="cart-remove"
                           onClick={() =>
-                            increaseQuantity(
+                            removeFromCart(
                               item.itemKey
                             )
                           }
-                          disabled={
-                            item.quantity >=
-                            item.maxQuantity
-                          }
-                          aria-label="زيادة الكمية"
+                          aria-label={`حذف ${item.name}`}
                         >
-                          <FiPlus />
+                          <FiTrash2 />
                         </button>
                       </div>
 
-                      <strong>
-                        {(
-                          item.price *
-                          item.quantity
-                        ).toFixed(2)}{" "}
+                      {/* OPTIONS */}
+
+                      {(item?.color ||
+                        item?.size ||
+                        itemVolume != null) && (
+                        <div className="cart-item-options">
+                          {itemVolume != null && (
+                            <span>
+                              الحجم:{" "}
+                              {itemVolume}{" "}
+                              {itemVolumeUnit}
+                            </span>
+                          )}
+
+                          {item?.color?.name && (
+                            <span>
+                              اللون:{" "}
+                              {item.color.name}
+                            </span>
+                          )}
+
+                          {item?.size?.name && (
+                            <span>
+                              المقاس:{" "}
+                              {item.size.name}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* PRICE */}
+
+                      <div className="cart-item-price">
+                        {item.price.toFixed(2)}{" "}
                         {item.currency}
-                      </strong>
+                      </div>
+
+                      {/* QUANTITY */}
+
+                      <div className="cart-item-bottom">
+                        <div className="quantity-control">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              decreaseQuantity(
+                                item.itemKey
+                              )
+                            }
+                            aria-label="تقليل الكمية"
+                          >
+                            <FiMinus />
+                          </button>
+
+                          <span>
+                            {item.quantity}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              increaseQuantity(
+                                item.itemKey
+                              )
+                            }
+                            disabled={
+                              item.quantity >=
+                              item.maxQuantity
+                            }
+                            aria-label="زيادة الكمية"
+                          >
+                            <FiPlus />
+                          </button>
+                        </div>
+
+                        <strong>
+                          {(
+                            item.price *
+                            item.quantity
+                          ).toFixed(2)}{" "}
+                          {item.currency}
+                        </strong>
+                      </div>
                     </div>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                );
+              })}
             </div>
           )}
         </div>

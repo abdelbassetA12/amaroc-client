@@ -6,7 +6,7 @@ import {
 } from "react-router-dom";
 
 import { Toaster } from "react-hot-toast";
-
+import { ProductProvider } from "./context/ProductContext";
 import "./app.css";
 
 // Providers
@@ -38,11 +38,15 @@ import NotFound from "./pages/NotFound";
 // Admin
 import AdminAuth from "./pages/admin/AdminAuth";
 import AdminProtectedRoute from "./routes/AdminProtectedRoute";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AddProduct from "./pages/admin/AddProduct";
+import ProductsAdmin from "./pages/admin/Products";
 
 export default function App() {
   return (
     <CartProvider>
       <AdminAuthProvider>
+        <ProductProvider>
         <BrowserRouter>
           <AppContent />
 
@@ -51,6 +55,7 @@ export default function App() {
             reverseOrder={false}
           />
         </BrowserRouter>
+        </ProductProvider>
       </AdminAuthProvider>
     </CartProvider>
   );
@@ -91,14 +96,24 @@ function AppContent() {
           element={<AdminAuth />}
         />
 
+        
         <Route element={<AdminProtectedRoute />}>
           <Route
             path="/admin"
-            element={
-              <div>
-                Admin Dashboard
-              </div>
-            }
+            element={<AdminDashboard />}
+          />
+        </Route>
+       
+        <Route element={<AdminProtectedRoute />}>
+  <Route
+    path="/admin/products/add"
+    element={<AddProduct />}
+  />
+</Route>
+        <Route element={<AdminProtectedRoute />}>
+          <Route
+            path="/admin/products"
+            element={<ProductsAdmin />}
           />
         </Route>
 
@@ -135,6 +150,7 @@ function AppContent() {
           path="/products/:slug"
           element={<ProductDetails />}
         />
+        
 
         <Route
           path="/search"

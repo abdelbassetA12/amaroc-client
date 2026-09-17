@@ -6,10 +6,22 @@ import {
   FiGrid,
   FiPackage,
 } from "react-icons/fi";
-
-import products from "../../components/landing/components/products";
+import { useProducts } from "../../context/ProductContext";
+//import products from "../../components/landing/components/products";
 
 export default function Categories() {
+    const {
+    products,
+    loading,
+    error,
+  } = useProducts();
+   if (loading) {
+    return <div>جاري تحميل المنتجات...</div>;
+  }
+
+  if (error) {
+    return <div>{error}</div>;
+  }
   /*
   ============================================================
   استخراج الفئات من المنتجات
@@ -184,7 +196,7 @@ export default function Categories() {
 
               <Link
                 key={category.slug}
-                to={`/products?category=${category.slug}`}
+                to={`/product?category=${category.name}`}
                 className="category-card"
               >
 

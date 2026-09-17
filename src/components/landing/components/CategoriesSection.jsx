@@ -3,9 +3,21 @@ import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { FiArrowLeft, FiPackage } from "react-icons/fi";
 import products from "./products";
+ import { useProducts } from "../../../context/ProductContext";
 
 export default function CategoriesSection() {
+ const {
+    products,
+    loading,
+    error,
+  } = useProducts();
+   if (loading) {
+    return <div>جاري تحميل المنتجات...</div>;
+  }
 
+  if (error) {
+    return <div>{error}</div>;
+  }
     /* ============================================================
        استخراج الفئات من المنتجات
        نفس منطق صفحة Categories.jsx
@@ -90,7 +102,7 @@ export default function CategoriesSection() {
 
                     <Link
                         key={category.slug || index}
-                        to={`/products?category=${category.slug}`}
+                        to={`/product?category=${category.name}`}
                         className="category-card"
                     >
 

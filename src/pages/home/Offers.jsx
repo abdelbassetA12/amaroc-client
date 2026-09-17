@@ -9,10 +9,23 @@ import {
   FiTag,
   FiZap,
 } from "react-icons/fi";
-import products from "../../components/landing/components/products";
+import { useProducts } from "../../context/ProductContext";
+//import products from "../../components/landing/components/products";
 import ProductCard from "../../components/landing/components/ProductCard";
 
 export default function Offers() {
+    const {
+      products,
+      loading,
+      error,
+    } = useProducts();
+     if (loading) {
+      return <div>جاري تحميل المنتجات...</div>;
+    }
+  
+    if (error) {
+      return <div>{error}</div>;
+    }
   const [sort, setSort] = useState("discount");
 
   // =========================================================

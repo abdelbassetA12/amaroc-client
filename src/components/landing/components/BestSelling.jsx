@@ -5,8 +5,21 @@ import {
 import { Link } from "react-router-dom";
 import products from "./products";
 import ProductCard from "./ProductCard";
+ import { useProducts } from "../../../context/ProductContext";
 
 export default function BestSelling() {
+     const {
+        products,
+        loading,
+        error,
+      } = useProducts();
+       if (loading) {
+        return <div>جاري تحميل المنتجات...</div>;
+      }
+    
+      if (error) {
+        return <div>{error}</div>;
+      }
   const bestSellingProducts = products
     .filter(
       (product) =>

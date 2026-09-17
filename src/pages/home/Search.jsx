@@ -9,9 +9,10 @@ import {
   FiStar,
   FiShoppingBag,
 } from "react-icons/fi";
+ import { useProducts } from "../../context/ProductContext";
 
 import ProductCard from "../../components/landing/components/ProductCard";
-import products from "../../components/landing/components/products";
+ //import products from "../../components/landing/components/products";
 
  
 
@@ -119,6 +120,20 @@ const calculateRelevance = (product, query) => {
 };
 
 export default function Search() {
+    
+  const {
+    products,
+    loading,
+    error,
+  } = useProducts();
+   if (loading) {
+    return <div>جاري تحميل المنتجات...</div>;
+  }
+
+  if (error) {
+    return <div>{error}</div>;
+  }
+  
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -153,7 +168,16 @@ export default function Search() {
 
   const categories = useMemo(() => {
     const map = new Map();
-
+/*
+    products.forEach((product) => {
+      if (product?.category?.slug) {
+        map.set(
+          product.category.slug,
+          product.category.slug
+        );
+      }
+    });*/
+   
     products.forEach((product) => {
       if (product?.category?.name) {
         map.set(
@@ -161,7 +185,7 @@ export default function Search() {
           product.category.name
         );
       }
-    });
+    }); 
 
     return Array.from(map.values());
   }, []);
@@ -188,13 +212,21 @@ export default function Search() {
 
           if (!matches) return false;
         }
-
+       /*
+        if (
+          category !== "all" &&
+          product?.category?.slug !== category
+        ) {
+          return false;
+        }*/
+         
         if (
           category !== "all" &&
           product?.category?.name !== category
         ) {
           return false;
         }
+
 
         if (
           gender !== "all" &&

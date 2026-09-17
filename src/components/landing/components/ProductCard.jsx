@@ -1,3 +1,4 @@
+ 
 import { useNavigate } from "react-router-dom";
 import {
   FiHeart,
@@ -7,58 +8,210 @@ import {
 import toast from "react-hot-toast";
 import { useCart } from "../../../context/CartContext";
 
-export default function ProductCard({
-  product,
-}) {
+export default function ProductCard({ product }) {
   const navigate = useNavigate();
-
   const { addToCart } = useCart();
+
+  // ============================================================
+  // SAFETY
+  // ============================================================
+
+  if (!product) {
+    return null;
+  }
 
   // ============================================================
   // PRICING
   // ============================================================
 
-  const hasDiscount =
-    product?.pricing?.discount?.enabled &&
+  const regularPrice = Number(
+    product?.pricing?.regularPrice || 0
+  );
+
+  const salePrice =
     product?.pricing?.salePrice !== null &&
-    product?.pricing?.salePrice <
-      product?.pricing?.regularPrice;
+    product?.pricing?.salePrice !== undefined
+      ? Number(product.pricing.salePrice)
+      : null;
+
+  const hasDiscount =
+    product?.pricing?.discount?.enabled === true &&
+    salePrice !== null &&
+    salePrice > 0 &&
+    salePrice < regularPrice;
 
   const currentPrice = hasDiscount
-    ? product.pricing.salePrice
-    : product.pricing.regularPrice;
+    ? salePrice
+    : regularPrice;
 
   // ============================================================
   // INVENTORY
   // ============================================================
 
+  const inventoryQuantity = Number(
+    product?.inventory?.quantity || 0
+  );
+
   const isOutOfStock =
-    product?.inventory?.status ===
-      "out_of_stock" ||
-    product?.inventory?.quantity <= 0;
+    product?.inventory?.status === "out_of_stock" ||
+    inventoryQuantity <= 0;
 
   const isLowStock =
-    product?.inventory?.status ===
-      "low_stock" &&
-    product?.inventory?.quantity > 0;
+    product?.inventory?.status === "low_stock" &&
+    inventoryQuantity > 0;
+
+  // ============================================================
+  // PRODUCT TYPE
+  // ============================================================
+
+  const categorySlug =
+    product?.category?.slug ||
+    product?.category?.id ||
+    "";
+
+  const isPerfume =
+    categorySlug === "perfumes" ||
+    product?.category?.name === "العطور" ||
+    product?.subcategory?.slug === "men-perfumes" ||
+    product?.subcategory?.id === "men-perfumes";
 
   // ============================================================
   // VARIANTS
   // ============================================================
 
-  const colors =
-    product?.variants?.colors || [];
+  const variants = Array.isArray(product?.variants)
+    ? product.variants
+    : [];
 
-  const sizes =
-    product?.variants?.sizes || [];
+  // ============================================================
+  // UNIQUE COLORS
+  // ============================================================
+
+  const colors = [];
+
+  variants.forEach((variant) => {
+    if (!variant?.color) {
+      return;
+    }
+
+    const exists = colors.some(
+      (color) => color.name === variant.color
+    );
+
+    if (!exists) {
+      colors.push({
+        name: variant.color,
+        value: variant.colorValue || "#dddddd",
+      });
+    }
+  });
+
+  // ============================================================
+  // UNIQUE SIZES
+  // ============================================================
+
+  const sizes = [];
+
+  variants.forEach((variant) => {
+    if (!variant?.size) {
+      return;
+    }
+
+    const exists = sizes.some(
+      (size) => size.value === variant.sizeValue
+    );
+
+    if (!exists) {
+      sizes.push({
+        name: variant.size,
+        value:
+          variant.sizeValue ||
+          variant.size,
+      });
+    }
+  });
+
+  // ============================================================
+  // UNIQUE PERFUME VOLUMES
+  // ============================================================
+
+  const volumes = [];
+
+  variants.forEach((variant) => {
+    if (
+      variant?.volume === null ||
+      variant?.volume === undefined
+    ) {
+      return;
+    }
+
+    const numericVolume = Number(variant.volume);
+
+    if (!Number.isFinite(numericVolume)) {
+      return;
+    }
+
+    const exists = volumes.some(
+      (volume) =>
+        Number(volume.value) === numericVolume &&
+        volume.unit ===
+          (variant.volumeUnit || "ml")
+    );
+
+    if (!exists) {
+      volumes.push({
+        value: numericVolume,
+        unit: variant.volumeUnit || "ml",
+      });
+    }
+  });
+
+  // ============================================================
+  // REAL OPTIONS
+  //
+  // ONE_SIZE لا يعتبر خياراً يحتاج إلى اختيار.
+  // ============================================================
+
+  const selectableSizes = sizes.filter(
+    (size) => size.value !== "ONE_SIZE"
+  );
+
+  // ============================================================
+  // OPTION REQUIREMENTS
+  // ============================================================
+
+  // المنتجات العادية
+  const hasColorOptions =
+    colors.length > 1;
+
+  const hasSizeOptions =
+    selectableSizes.length > 1;
+
+  // العطور
+  const hasVolumeOptions =
+    isPerfume && volumes.length > 1;
 
   const requiresOptions =
-    colors.length > 0 ||
-    (sizes.length > 0 &&
-      !(
-        sizes.length === 1 &&
-        sizes[0]?.value === "ONE_SIZE"
-      ));
+    hasColorOptions ||
+    hasSizeOptions ||
+    hasVolumeOptions;
+
+  // ============================================================
+  // VARIANT DISPLAY HELPERS
+  // ============================================================
+
+  const getVariantVolume = (variant) => {
+    if (
+      variant?.volume === null ||
+      variant?.volume === undefined
+    ) {
+      return null;
+    }
+
+    return `${variant.volume} ${
+      variant.volumeUnit || "ml"
+    }`;
+  };
 
   // ============================================================
   // ADD TO CART
@@ -67,36 +220,100 @@ export default function ProductCard({
   const handleAddToCart = (event) => {
     event.stopPropagation();
 
+    // ----------------------------------------------------------
+    // OUT OF STOCK
+    // ----------------------------------------------------------
+
     if (isOutOfStock) {
       toast.error(
         "هذا المنتج غير متوفر حالياً."
       );
-
       return;
     }
 
-    // ==========================================================
+    // ----------------------------------------------------------
     // PRODUCT HAS OPTIONS
-    // ==========================================================
+    //
+    // الملابس:
+    // color / size
+    //
+    // العطور:
+    // volume
+    // ----------------------------------------------------------
 
     if (requiresOptions) {
       navigate(
         `/products/${product.slug}`
       );
-
       return;
     }
 
-    // ==========================================================
+    // ----------------------------------------------------------
     // PRODUCT WITHOUT OPTIONS
-    // ==========================================================
+    //
+    // نبحث عن الـ variant المتاح تلقائياً.
+    // ----------------------------------------------------------
 
-    const result = addToCart(product, 1);
+    let selectedVariant = null;
 
-    if (result.success) {
-      toast.success(result.message);
+    if (variants.length > 0) {
+      selectedVariant =
+        variants.find(
+          (variant) =>
+            Number(
+              variant?.quantity || 0
+            ) > 0
+        ) || null;
+    }
+
+    // ----------------------------------------------------------
+    // إذا كان المنتج لديه variants
+    // ولكن كلها بدون مخزون
+    // ----------------------------------------------------------
+
+    if (
+      variants.length > 0 &&
+      !selectedVariant
+    ) {
+      toast.error(
+        "هذا المنتج غير متوفر حالياً."
+      );
+      return;
+    }
+
+    // ----------------------------------------------------------
+    // ADD TO CART
+    //
+    // نمرر الـ variant كاملاً.
+    //
+    // CartContext مسؤول عن استخراج:
+    // color
+    // size
+    // volume
+    // volumeUnit
+    // variantId
+    // sku
+    // price
+    // quantity
+    // ----------------------------------------------------------
+
+    const result = selectedVariant
+      ? addToCart(
+          product,
+          1,
+          selectedVariant
+        )
+      : addToCart(product, 1);
+
+    if (result?.success) {
+      toast.success(
+        result.message
+      );
     } else {
-      toast.error(result.message);
+      toast.error(
+        result?.message ||
+          "تعذر إضافة المنتج إلى السلة."
+      );
     }
   };
 
@@ -110,6 +327,30 @@ export default function ProductCard({
     );
   };
 
+  // ============================================================
+  // DISPLAY RATING
+  // ============================================================
+
+  const rating = Number(
+    product?.rating?.average || 0
+  );
+
+  const ratingCount = Number(
+    product?.rating?.count || 0
+  );
+
+  // ============================================================
+  // RATING STARS
+  // ============================================================
+
+  const stars = Array.from({
+    length: 5,
+  });
+
+  // ============================================================
+  // RENDER
+  // ============================================================
+
   return (
     <>
       <article
@@ -117,22 +358,29 @@ export default function ProductCard({
         onClick={handleProductClick}
       >
         <div className="product-image-container">
-          {/* BADGE */}
+          {/* ==================================================
+              BADGE
+          ================================================== */}
 
-          {product?.badge?.enabled && (
-            <span
-              className={`product-badge ${
-                product.badge.type ===
-                "sale"
-                  ? "sale"
-                  : ""
-              }`}
-            >
-              {product.badge.text}
-            </span>
-          )}
+          {product?.badge?.enabled &&
+            product?.badge?.text && (
+              <span
+                className={`product-badge ${
+                  product.badge.type === "sale"
+                    ? "sale"
+                    : product.badge.type ===
+                      "out_of_stock"
+                    ? "out-of-stock"
+                    : ""
+                }`}
+              >
+                {product.badge.text}
+              </span>
+            )}
 
-          {/* WISHLIST */}
+          {/* ==================================================
+              WISHLIST
+          ================================================== */}
 
           <button
             type="button"
@@ -145,14 +393,34 @@ export default function ProductCard({
             <FiHeart />
           </button>
 
-          {/* IMAGE */}
+          {/* ==================================================
+              IMAGE
+          ================================================== */}
 
           <img
-            src={product?.thumbnail}
-            alt={product?.name}
+            src={
+              product?.thumbnail ||
+              product?.images?.find(
+                (image) =>
+                  image?.isPrimary
+              )?.url ||
+              product?.images?.[0]?.url ||
+              ""
+            }
+            alt={
+              product?.images?.find(
+                (image) =>
+                  image?.isPrimary
+              )?.alt ||
+              product?.name ||
+              "منتج"
+            }
+            loading="lazy"
           />
 
-          {/* OUT OF STOCK */}
+          {/* ==================================================
+              OUT OF STOCK
+          ================================================== */}
 
           {isOutOfStock && (
             <div className="product-stock-overlay">
@@ -160,7 +428,9 @@ export default function ProductCard({
             </div>
           )}
 
-          {/* ADD TO CART */}
+          {/* ==================================================
+              ADD TO CART
+          ================================================== */}
 
           {!isOutOfStock && (
             <button
@@ -184,13 +454,19 @@ export default function ProductCard({
           )}
         </div>
 
+        {/* ====================================================
+            PRODUCT INFO
+        ==================================================== */}
+
         <div className="product-info">
-          {/* COLORS */}
+          {/* ==================================================
+              COLORS
+          ================================================== */}
 
           {colors.length > 0 && (
             <div className="product-colors">
               {colors
-                .slice(0, 4)
+                .slice(0, 5)
                 .map((color) => (
                   <span
                     key={color.name}
@@ -201,59 +477,118 @@ export default function ProductCard({
                     }}
                   />
                 ))}
+
+              {colors.length > 5 && (
+                <small>
+                  +{colors.length - 5}
+                </small>
+              )}
             </div>
           )}
 
-          {/* NAME */}
+          {/* ==================================================
+              PERFUME VOLUMES
+          ================================================== */}
 
-          <h3>{product?.name}</h3>
+          {isPerfume &&
+            volumes.length > 0 && (
+              <div className="product-volumes">
+                {volumes
+                  .slice(0, 4)
+                  .map((volume) => (
+                    <span
+                      key={`${volume.value}-${volume.unit}`}
+                    >
+                      {volume.value}{" "}
+                      {volume.unit}
+                    </span>
+                  ))}
 
-          {/* RATING */}
+                {volumes.length > 4 && (
+                  <small>
+                    +{volumes.length - 4}
+                  </small>
+                )}
+              </div>
+            )}
+
+          {/* ==================================================
+              NAME
+          ================================================== */}
+
+          <h3>
+            {product?.name}
+          </h3>
+
+          {/* ==================================================
+              RATING
+          ================================================== */}
 
           <div className="product-rating">
             <div className="stars">
-              {Array.from({
-                length: 5,
-              }).map((_, index) => (
-                <FiStar
-                  key={index}
-                />
-              ))}
+              {stars.map(
+                (_, index) => {
+                  const starNumber =
+                    index + 1;
+
+                  return (
+                    <FiStar
+                      key={index}
+                      className={
+                        starNumber <=
+                        Math.round(
+                          rating
+                        )
+                          ? "active"
+                          : ""
+                      }
+                    />
+                  );
+                }
+              )}
             </div>
 
             <small>
-              ({product?.rating?.count || 0})
+              ({ratingCount})
             </small>
           </div>
 
-          {/* PRICE */}
+          {/* ==================================================
+              PRICE
+          ================================================== */}
 
           <div className="product-price">
             <strong>
-              {Number(
-                currentPrice
-              ).toFixed(2)}{" "}
-              {product?.pricing?.currency}
+              {currentPrice.toFixed(
+                2
+              )}{" "}
+              {
+                product?.pricing
+                  ?.currency
+              }
             </strong>
 
             {hasDiscount && (
               <del>
-                {Number(
-                  product.pricing
-                    .regularPrice
-                ).toFixed(2)}{" "}
-                {product?.pricing?.currency}
+                {regularPrice.toFixed(
+                  2
+                )}{" "}
+                {
+                  product?.pricing
+                    ?.currency
+                }
               </del>
             )}
           </div>
 
-          {/* LOW STOCK */}
+          {/* ==================================================
+              LOW STOCK
+          ================================================== */}
 
           {isLowStock && (
             <small className="product-low-stock">
               متبقي{" "}
-              {product?.inventory
-                ?.quantity}{" "}
+              {inventoryQuantity}{" "}
               فقط
             </small>
           )}
@@ -328,6 +663,10 @@ export default function ProductCard({
           background: #b42318;
         }
 
+        .product-badge.out-of-stock {
+          background: #555;
+        }
+
         /* ======================================================
            WISHLIST
         ====================================================== */
@@ -355,7 +694,12 @@ export default function ProductCard({
           cursor: pointer;
           box-shadow:
             0 2px 10px
-              rgba(0, 0, 0, 0.06);
+              rgba(
+                0,
+                0,
+                0,
+                0.06
+              );
           transition:
             background 0.2s ease,
             color 0.2s ease,
@@ -472,10 +816,54 @@ export default function ProductCard({
           width: 12px;
           height: 12px;
           display: block;
+          flex-shrink: 0;
           border-radius: 50%;
           border: 1px solid
-            rgba(0, 0, 0, 0.12);
+            rgba(
+              0,
+              0,
+              0,
+              0.12
+            );
           box-sizing: border-box;
+        }
+
+        .product-colors small {
+          color: #888;
+          font-size: 10px;
+        }
+
+        /* ======================================================
+           PERFUME VOLUMES
+        ====================================================== */
+
+        .product-volumes {
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 5px;
+          min-height: 15px;
+          margin-bottom: 9px;
+        }
+
+        .product-volumes span {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 22px;
+          padding: 3px 7px;
+          border: 1px solid #e3e3e3;
+          border-radius: 3px;
+          color: #555;
+          background: #fafafa;
+          font-size: 10px;
+          line-height: 1;
+          box-sizing: border-box;
+        }
+
+        .product-volumes small {
+          color: #888;
+          font-size: 10px;
         }
 
         .product-info h3 {
@@ -511,6 +899,10 @@ export default function ProductCard({
           width: 13px;
           height: 13px;
           stroke: #222;
+          fill: none;
+        }
+
+        .stars svg.active {
           fill: #222;
         }
 
@@ -599,38 +991,46 @@ export default function ProductCard({
             font-size: 10px;
           }
 
+          /* PERFUME VOLUMES */
+
+          .product-volumes {
+            gap: 4px;
+            margin-bottom: 7px;
+          }
+
+          .product-volumes span {
+            min-height: 20px;
+            padding: 3px 6px;
+            font-size: 9px;
+          }
+
           /* ==================================================
              MOBILE CART BUTTON
-
-             لا يغطي الصورة مثل الزر الكبير.
-             يتحول إلى زر دائري صغير.
           ================================================== */
 
           .product-add-cart {
             right: 9px;
             bottom: 9px;
             left: auto;
-
             width: 42px;
             height: 42px;
             min-height: 42px;
-
             padding: 0;
-
             display: flex;
             align-items: center;
             justify-content: center;
-
             gap: 0;
-
             border-radius: 50%;
-
             opacity: 1;
             transform: none;
-
             box-shadow:
               0 4px 14px
-                rgba(0, 0, 0, 0.16);
+                rgba(
+                  0,
+                  0,
+                  0,
+                  0.16
+                );
           }
 
           .product-add-cart span {
@@ -687,3 +1087,6 @@ export default function ProductCard({
     </>
   );
 }
+ 
+
+

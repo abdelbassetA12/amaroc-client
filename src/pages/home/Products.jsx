@@ -1,15 +1,28 @@
  
 import { useMemo, useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-
-import products from "../../components/landing/components/products";
+import { useProducts } from "../../context/ProductContext";
+ //import products from "../../components/landing/components/products";
+ 
 import ProductCard from "../../components/landing/components/ProductCard";
 
 export default function Products() {
+    const {
+    products,
+    loading,
+    error,
+  } = useProducts();
+   if (loading) {
+    return <div>جاري تحميل المنتجات...</div>;
+  }
+
+  if (error) {
+    return <div>{error}</div>;
+  }
   // =========================================================
   // URL PARAMS
   // =========================================================
-
+ 
   const [searchParams, setSearchParams] = useSearchParams();
 
   const categoryFromUrl = searchParams.get("category") || "all";
