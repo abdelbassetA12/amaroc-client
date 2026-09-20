@@ -9,6 +9,7 @@ import {
   FiShield,
   FiX,
   FiChevronRight,
+  FiTruck
 } from "react-icons/fi";
 
 import { useAdminAuth } from "../../context/AdminAuthContext";
@@ -54,6 +55,11 @@ export default function AdminSidebar({
       label: "addProduct",
       path: "/admin/products/add",
       icon: FiPackage,
+    },
+    {
+      label: "shipping",
+      path: "/admin/shipping",
+      icon: FiTruck,
     },
     {
       label: "Orders",

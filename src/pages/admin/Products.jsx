@@ -30,8 +30,7 @@ import {
 } from "react-icons/fi";
  import API_BASE from "../../config/api";
 
-const API_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+ 
 
 const PAGE_SIZE = 8;
 

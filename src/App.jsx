@@ -41,6 +41,8 @@ import AdminProtectedRoute from "./routes/AdminProtectedRoute";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AddProduct from "./pages/admin/AddProduct";
 import ProductsAdmin from "./pages/admin/Products";
+import ShippingSiteng from "./pages/admin/Shipping";
+
 
 export default function App() {
   return (
@@ -114,6 +116,12 @@ function AppContent() {
           <Route
             path="/admin/products"
             element={<ProductsAdmin />}
+          />
+        </Route>
+        <Route element={<AdminProtectedRoute />}>
+          <Route
+            path="/admin/shipping"
+            element={<ShippingSiteng />}
           />
         </Route>
 

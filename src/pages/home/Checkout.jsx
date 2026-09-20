@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import {
   FiArrowRight,
@@ -41,41 +42,117 @@ export default function Checkout() {
     notes: "",
   });
 
-  const [shippingMethod, setShippingMethod] = useState("standard");
+  const [shippingMethod, setShippingMethod] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cod");
+  const [shippingData, setShippingData] = useState(null);
+  const [shippingLoading, setShippingLoading] = useState(true);
+  const [shippingError, setShippingError] = useState("");
 
-  const shippingOptions = {
-    standard: {
-      id: "standard",
-      name: "التوصيل العادي",
-      description: "التوصيل خلال 2 إلى 4 أيام عمل",
-      price: 25,
-    },
-    express: {
-      id: "express",
-      name: "التوصيل السريع",
-      description: "التوصيل خلال 24 إلى 48 ساعة",
-      price: 45,
-    },
-  };
+  useEffect(() => {
+    let mounted = true;
 
-  const selectedShipping = shippingOptions[shippingMethod];
+    const loadShipping = async () => {
+      try {
+        setShippingLoading(true);
+        setShippingError("");
+
+        const response = await axios.get("http://localhost:5000/api/shipping");
+
+        // API response shape: { success: true, shipping: { ... } }
+        // Support both the current shape and the older { data: { ... } } shape.
+        const payload = response.data?.data ?? response.data;
+        const data = payload?.shipping ?? payload;
+
+        const methods = Array.isArray(data?.methods)
+          ? data.methods.filter((method) => method.enabled !== false)
+          : [];
+
+        if (!mounted) {
+          return;
+        }
+
+        setShippingData({
+          enabled: data?.enabled !== false,
+          currency: data?.currency || "MAD",
+          freeShipping: {
+            enabled: data?.freeShipping?.enabled === true,
+            minimumOrder: Number(
+              data?.freeShipping?.minimumOrder || 0
+            ),
+          },
+          methods,
+        });
+
+        setShippingMethod((current) =>
+          methods.some((method) => method._id === current)
+            ? current
+            : methods[0]?._id || ""
+        );
+      } catch (error) {
+        console.error("Shipping load error:", error);
+
+        if (mounted) {
+          setShippingData(null);
+          setShippingError("تعذر تحميل طرق الشحن.");
+        }
+      } finally {
+        if (mounted) {
+          setShippingLoading(false);
+        }
+      }
+    };
+
+    loadShipping();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const shippingOptions = shippingData?.methods || [];
+
+  const selectedShipping = useMemo(
+    () =>
+      shippingOptions.find(
+        (method) => method._id === shippingMethod
+      ) || null,
+    [shippingOptions, shippingMethod]
+  );
+
+  const freeShippingEnabled =
+    shippingData?.freeShipping?.enabled === true;
+
+  const freeShippingMinimum = Number(
+    shippingData?.freeShipping?.minimumOrder || 0
+  );
+
+  const hasFreeShipping =
+    freeShippingEnabled &&
+    Number(subtotal || 0) >= freeShippingMinimum &&
+    selectedShipping?.freeShippingEligible === true;
 
   const shippingPrice = useMemo(() => {
-    if (subtotal >= 500) {
+    if (!selectedShipping) {
       return 0;
     }
 
-    return selectedShipping.price;
-  }, [subtotal, selectedShipping.price]);
+    if (hasFreeShipping) {
+      return 0;
+    }
+
+    return Number(selectedShipping.price || 0);
+  }, [selectedShipping, hasFreeShipping]);
 
   const total = useMemo(() => {
     return Number(subtotal || 0) + shippingPrice;
   }, [subtotal, shippingPrice]);
 
   const freeShippingRemaining = useMemo(() => {
-    return Math.max(0, 500 - Number(subtotal || 0));
-  }, [subtotal]);
+    return Math.max(
+      0,
+      freeShippingMinimum - Number(subtotal || 0)
+    );
+  }, [freeShippingMinimum, subtotal]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -150,6 +227,15 @@ export default function Checkout() {
       return;
     }
 
+    if (
+      shippingLoading ||
+      !shippingData?.enabled ||
+      !selectedShipping
+    ) {
+      toast.error("يرجى اختيار طريقة شحن متاحة.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -182,9 +268,7 @@ export default function Checkout() {
         },
 
         shipping: {
-          method: selectedShipping.id,
-          name: selectedShipping.name,
-          price: shippingPrice,
+          methodId: selectedShipping?._id || null,
         },
 
         payment: {
@@ -223,7 +307,7 @@ export default function Checkout() {
           subtotal: Number(subtotal || 0),
           shipping: Number(shippingPrice || 0),
           total: Number(total || 0),
-          currency: "MAD",
+          currency: shippingData?.currency || "MAD",
         },
 
         itemsCount: cartCount,
@@ -619,6 +703,7 @@ export default function Checkout() {
           ===================================================== */}
 
           <form
+            id="checkout-form"
             className="checkout-form"
             onSubmit={handleSubmit}
           >
@@ -898,88 +983,126 @@ export default function Checkout() {
                 </div>
               </div>
 
-              <div className="shipping-options">
-                {Object.values(shippingOptions).map(
-                  (option) => {
-                    const isSelected =
-                      shippingMethod === option.id;
+              {shippingLoading ? (
+                <div className="shipping-state">
+                  جاري تحميل طرق الشحن...
+                </div>
+              ) : shippingError ? (
+                <div className="shipping-state error">
+                  {shippingError}
+                </div>
+              ) : !shippingData?.enabled ? (
+                <div className="shipping-state">
+                  لا تتوفر خدمة الشحن حالياً.
+                </div>
+              ) : shippingOptions.length === 0 ? (
+                <div className="shipping-state">
+                  لا توجد طرق شحن متاحة حالياً.
+                </div>
+              ) : (
+                <>
+                  <div className="shipping-options">
+                    {shippingOptions.map((option) => {
+                      const isSelected =
+                        shippingMethod === option._id;
 
-                    const isFree =
-                      subtotal >= 500;
+                      const isFree =
+                        freeShippingEnabled &&
+                        Number(subtotal || 0) >=
+                          freeShippingMinimum &&
+                        option.freeShippingEligible === true;
 
-                    return (
-                      <label
-                        key={option.id}
-                        className={
-                          isSelected
-                            ? "shipping-option active"
-                            : "shipping-option"
-                        }
-                      >
-                        <input
-                          type="radio"
-                          name="shippingMethod"
-                          value={option.id}
-                          checked={isSelected}
-                          onChange={(event) =>
-                            setShippingMethod(
-                              event.target.value
-                            )
+                      const delivery = option.delivery;
+                      const deliveryText =
+                        delivery?.min !== undefined &&
+                        delivery?.max !== undefined
+                          ? `التوصيل خلال ${delivery.min} إلى ${delivery.max} ${delivery.unit || "days"}`
+                          : option.description || "";
+
+                      return (
+                        <label
+                          key={option._id}
+                          className={
+                            isSelected
+                              ? "shipping-option active"
+                              : "shipping-option"
                           }
-                        />
+                        >
+                          <input
+                            type="radio"
+                            name="shippingMethod"
+                            value={option._id}
+                            checked={isSelected}
+                            onChange={(event) =>
+                              setShippingMethod(
+                                event.target.value
+                              )
+                            }
+                          />
 
-                        <div className="shipping-radio">
-                          <span />
-                        </div>
+                          <div className="shipping-radio">
+                            <span />
+                          </div>
 
-                        <div className="shipping-option-info">
+                          <div className="shipping-option-info">
+                            <strong>
+                              {option.name}
+                            </strong>
+
+                            <span>
+                              {deliveryText}
+                            </span>
+                          </div>
+
+                          <div className="shipping-option-price">
+                            {isFree
+                              ? "مجاني"
+                              : `${Number(
+                                  option.price || 0
+                                ).toFixed(2)} ${
+                                  option.currency ||
+                                  shippingData.currency ||
+                                  "MAD"
+                                }`}
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+
+                  {freeShippingEnabled &&
+                    freeShippingMinimum > 0 &&
+                    Number(subtotal || 0) <
+                      freeShippingMinimum && (
+                      <div className="free-shipping-note">
+                        <FiTruck />
+
+                        <span>
+                          أضف{" "}
                           <strong>
-                            {option.name}
-                          </strong>
+                            {freeShippingRemaining.toFixed(2)}{" "}
+                            {shippingData.currency || "MAD"}
+                          </strong>{" "}
+                          للحصول على شحن مجاني.
+                        </span>
+                      </div>
+                    )}
 
-                          <span>
-                            {option.description}
-                          </span>
-                        </div>
+                  {hasFreeShipping && (
+                    <div className="free-shipping-note success">
+                      <FiCheck />
 
-                        <div className="shipping-option-price">
-                          {isFree
-                            ? "مجاني"
-                            : `${option.price} MAD`}
-                        </div>
-                      </label>
-                    );
-                  }
-                )}
-              </div>
-
-              {subtotal < 500 && (
-                <div className="free-shipping-note">
-                  <FiTruck />
-
-                  <span>
-                    أضف{" "}
-                    <strong>
-                      {freeShippingRemaining.toFixed(2)} MAD
-                    </strong>{" "}
-                    للحصول على شحن مجاني.
-                  </span>
-                </div>
-              )}
-
-              {subtotal >= 500 && (
-                <div className="free-shipping-note success">
-                  <FiCheck />
-
-                  <span>
-                    مبروك! حصلت على
-                    <strong>
-                      {" "}
-                      الشحن المجاني
-                    </strong>
-                    .
-                  </span>
-                </div>
+                      <span>
+                        مبروك! حصلت على
+                        <strong>
+                          {" "}
+                          الشحن المجاني
+                        </strong>
+                        .
+                      </span>
+                    </div>
+                  )}
+                </>
               )}
             </section>
 
@@ -1057,11 +1180,20 @@ export default function Checkout() {
             <button
               type="submit"
               className="mobile-submit"
-              disabled={isSubmitting}
+              disabled={
+                isSubmitting ||
+                shippingLoading ||
+                !shippingData?.enabled ||
+                !selectedShipping
+              }
             >
-              {isSubmitting
-                ? "جاري تأكيد الطلب..."
-                : `تأكيد الطلب • ${total.toFixed(2)} MAD`}
+              {shippingLoading
+                ? "جاري تحميل الشحن..."
+                : isSubmitting
+                  ? "جاري تأكيد الطلب..."
+                  : `تأكيد الطلب • ${total.toFixed(2)} ${
+                      shippingData?.currency || "MAD"
+                    }`}
             </button>
 
           </form>
@@ -1223,7 +1355,7 @@ export default function Checkout() {
                   {Number(
                     subtotal || 0
                   ).toFixed(2)}{" "}
-                  MAD
+                  {shippingData?.currency || "MAD"}
                 </strong>
               </div>
 
@@ -1234,10 +1366,16 @@ export default function Checkout() {
 
                 <strong>
                   {shippingPrice === 0
-                    ? "مجاني"
+                    ? selectedShipping
+                      ? "مجاني"
+                      : "—"
                     : `${shippingPrice.toFixed(
                         2
-                      )} MAD`}
+                      )} ${
+                        selectedShipping?.currency ||
+                        shippingData?.currency ||
+                        "MAD"
+                      }`}
                 </strong>
               </div>
 
@@ -1256,7 +1394,7 @@ export default function Checkout() {
 
                 <strong>
                   {total.toFixed(2)}{" "}
-                  MAD
+                  {shippingData?.currency || "MAD"}
                 </strong>
               </div>
 
@@ -1264,12 +1402,18 @@ export default function Checkout() {
                 type="submit"
                 form="checkout-form"
                 className="desktop-submit"
-                onClick={handleSubmit}
-                disabled={isSubmitting}
+                disabled={
+                  isSubmitting ||
+                  shippingLoading ||
+                  !shippingData?.enabled ||
+                  !selectedShipping
+                }
               >
-                {isSubmitting
-                  ? "جاري تأكيد الطلب..."
-                  : "تأكيد الطلب"}
+                {shippingLoading
+                  ? "جاري تحميل الشحن..."
+                  : isSubmitting
+                    ? "جاري تأكيد الطلب..."
+                    : "تأكيد الطلب"}
 
                 {!isSubmitting && (
                   <FiChevronLeft />
@@ -1515,6 +1659,21 @@ export default function Checkout() {
 
         .textarea-wrapper > svg {
           margin-top: 16px;
+        }
+
+        .shipping-state {
+          padding: 16px;
+          border: 1px dashed #ddd;
+          background: #fafafa;
+          color: #777;
+          text-align: center;
+          font-size: 12px;
+        }
+
+        .shipping-state.error {
+          border-color: #ead6d3;
+          background: #fffafa;
+          color: #a33a2b;
         }
 
         .shipping-options,
