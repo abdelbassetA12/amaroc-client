@@ -156,7 +156,7 @@ export default function AdminAuth() {
             <div className="admin-auth__brand-icon">
               <FiShield />
             </div>
-            hhh
+            
 
             <div className="admin-auth__brand-text">
               <strong>STORE ADMIN</strong>
