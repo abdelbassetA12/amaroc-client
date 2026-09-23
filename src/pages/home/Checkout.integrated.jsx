@@ -1,3 +1,5 @@
+
+
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
@@ -5,14 +7,13 @@ import {
   FiArrowRight,
   FiCheck,
   FiChevronLeft,
-  FiArrowLeft,
   FiLock,
   FiMapPin,
   FiPhone,
   FiMail,
   FiPackage,
   FiShoppingBag,
-  FiTruck, 
+  FiTruck,
   FiUser,
 } from "react-icons/fi";
 import { toast } from "react-hot-toast";
@@ -237,27 +238,29 @@ export default function Checkout() {
       return;
     }
 
-    if (paymentMethod !== "cod") {
-      toast.error("طريقة الدفع المختارة غير متاحة.");
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
-      /*
-       * مهم:
-       * الأسعار النهائية والمخزون يتم التحقق منهما داخل Backend.
-       * لذلك لا نعتمد على pricing القادم من الواجهة عند إنشاء الطلب.
-       * نرسل فقط البيانات التي يحتاجها endpoint /api/orders.
-       */
+      /* =====================================================
+         ORDER DATA
+         =====================================================
+
+         هذا هو الشكل الذي سنرسله لاحقاً إلى الـ Backend.
+
+         لا نعتمد على بيانات السعر القادمة من الفورم.
+         المنتجات والأسعار تأتي من cartItems.
+
+         يدعم:
+         - المنتجات العادية: color / size
+         - العطور: volume / volumeUnit
+      */
 
       const orderData = {
         customer: {
           firstName: formData.firstName.trim(),
           lastName: formData.lastName.trim(),
           phone: formData.phone.trim(),
-          email: formData.email.trim() || null,
+          email: formData.email.trim(),
         },
 
         shippingAddress: {
@@ -267,7 +270,7 @@ export default function Checkout() {
         },
 
         shipping: {
-          methodId: String(selectedShipping._id),
+          methodId: selectedShipping?._id || null,
         },
 
         payment: {
@@ -275,101 +278,107 @@ export default function Checkout() {
         },
 
         items: cartItems.map((item) => ({
-          productId: String(item.productId),
-          quantity: Math.max(1, Number(item.quantity || 1)),
+          productId: item.productId,
+          name: item.name,
+          slug: item.slug,
+          thumbnail: item.thumbnail,
 
-          color:
-            item.color !== undefined && item.color !== null
-              ? typeof item.color === "object"
-                ? item.color.name || null
-                : String(item.color)
-              : null,
+          price: Number(item.price || 0),
+          quantity: Number(item.quantity || 0),
 
-          size:
-            item.size !== undefined && item.size !== null
-              ? typeof item.size === "object"
-                ? item.size.name || null
-                : String(item.size)
-              : null,
+          /* المنتجات العادية */
+          color: item.color || null,
+          size: item.size || null,
 
+          /* العطور */
           volume:
-            item.volume !== undefined && item.volume !== null
+            item.volume !== undefined &&
+            item.volume !== null
               ? Number(item.volume)
               : null,
 
-          volumeUnit: item.volumeUnit
-            ? String(item.volumeUnit)
-            : null,
+          volumeUnit:
+            item.volumeUnit || null,
 
-          variantId: item.variantId
-            ? String(item.variantId)
-            : null,
+          /* معلومات الـ variant */
+          variantId: item.variantId || null,
+          sku: item.sku || null,
         })),
+
+        pricing: {
+          subtotal: Number(subtotal || 0),
+          shipping: Number(shippingPrice || 0),
+          total: Number(total || 0),
+          currency: shippingData?.currency || "MAD",
+        },
+
+        itemsCount: cartCount,
       };
 
-     
-      const response = await axios.post(
-        `http://localhost:5000/api/orders`,
-        orderData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          timeout: 30000,
+      /* =====================================================
+         TEMPORARY FRONTEND ORDER CREATION
+         =====================================================
+
+         حالياً لا يوجد endpoint لإنشاء الطلب في الـ Backend.
+
+         نحفظ الطلب محلياً مؤقتاً حتى تكون واجهة Checkout
+         قابلة للاختبار بالكامل.
+
+         عندما ننشئ /api/orders سنستبدل هذا الجزء بطلب Axios.
+      */
+
+      const generatedOrderNumber =
+        `AM-${Date.now().toString().slice(-8)}`;
+
+      const localOrder = {
+        ...orderData,
+        orderNumber: generatedOrderNumber,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      };
+
+      const existingOrders = (() => {
+        try {
+          const saved =
+            localStorage.getItem("amaroc_orders");
+
+          if (!saved) {
+            return [];
+          }
+
+          const parsed = JSON.parse(saved);
+
+          return Array.isArray(parsed)
+            ? parsed
+            : [];
+        } catch {
+          return [];
         }
+      })();
+
+      localStorage.setItem(
+        "amaroc_orders",
+        JSON.stringify([
+          localOrder,
+          ...existingOrders,
+        ])
       );
 
-      const payload = response.data?.data ?? response.data;
-      const createdOrder = payload?.order ?? payload;
-
-      if (
-        !response.data?.success ||
-        !createdOrder?.orderNumber
-      ) {
-        throw new Error("INVALID_ORDER_RESPONSE");
-      }
-
-      setOrderNumber(createdOrder.orderNumber);
+      setOrderNumber(generatedOrderNumber);
       setOrderSuccess(true);
 
       clearCart();
 
       toast.success("تم تسجيل طلبك بنجاح.");
     } catch (error) {
-      console.error("Checkout order creation error:", error);
+      console.error(
+        "Checkout error:",
+        error
+      );
 
-      const status = error.response?.status;
-      const serverMessage = error.response?.data?.message;
-
-      if (status === 409) {
-        toast.error(
-          serverMessage ||
-            "الكمية المطلوبة من أحد المنتجات غير متوفرة."
-        );
-      } else if (status === 400) {
-        toast.error(
-          serverMessage ||
-            "يرجى مراجعة بيانات الطلب وطريقة الشحن."
-        );
-      } else if (status === 404) {
-        toast.error(
-          serverMessage ||
-            "أحد المنتجات لم يعد متاحًا."
-        );
-      } else if (error.code === "ECONNABORTED") {
-        toast.error(
-          "انتهت مهلة الاتصال بالخادم. حاول مرة أخرى."
-        );
-      } else if (!error.response) {
-        toast.error(
-          "تعذر الاتصال بالخادم. تأكد من تشغيل Backend."
-        );
-      } else {
-        toast.error(
-          serverMessage ||
-            "تعذر إنشاء الطلب حاليًا. حاول مرة أخرى."
-        );
-      }
+      toast.error(
+        "حدث خطأ أثناء إرسال الطلب. حاول مرة أخرى."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -378,93 +387,55 @@ export default function Checkout() {
   /* ============================================================
      SUCCESS
      ============================================================ */
- 
- 
 
   if (orderSuccess) {
-  return (
-    <main className="checkout-page">
-      <section className="checkout-success">
-        {/* Success Icon */}
-        <div className="success-icon" aria-hidden="true">
-          <FiCheck />
-        </div>
-
-        {/* Brand */}
-        <span className="success-eyebrow">
-          AMAROC
-        </span>
-
-        {/* Title */}
-        <h1>تم تسجيل طلبك بنجاح</h1>
-
-        {/* Description */}
-        <p className="success-description">
-          شكرًا لك. تم تسجيل طلبك بنجاح،
-          وسنتواصل معك لتأكيد تفاصيل التوصيل.
-        </p>
-
-        {/* Order Number */}
-        <div className="success-order-number">
-          <span>رقم الطلب</span>
-
-          <strong dir="ltr">
-            {orderNumber}
-          </strong>
-        </div>
-
-        {/* Tracking Notice */}
-        <div className="tracking-notice">
-          <div className="tracking-notice-icon">
-            <FiTruck />
+    return (
+      <main className="checkout-page">
+        <section className="checkout-success">
+          <div className="success-icon">
+            <FiCheck />
           </div>
 
-          <div className="tracking-notice-content">
-            <h2>تابع حالة طلبك</h2>
+          <span className="success-eyebrow">
+            AMAROC
+          </span>
 
-            <p>
-              يمكنك تتبع حالة طلبك ومعرفة آخر
-              التحديثات باستخدام رقم الطلب ورقم
-              الهاتف الذي أدخلته أثناء الشراء.
-            </p>
+          <h1>
+            تم تأكيد طلبك
+          </h1>
+
+          <p>
+            شكراً لك. تم تسجيل طلبك بنجاح
+            وسنتواصل معك لتأكيد تفاصيل التوصيل.
+          </p>
+
+          <div className="success-order-number">
+            <span>
+              رقم الطلب
+            </span>
+
+            <strong>
+              {orderNumber}
+            </strong>
           </div>
-        </div>
 
-        {/* Actions */}
-        <div className="success-actions">
-          {/* Primary Tracking Action */}
-          <Link
-            to="/track-order"
-            className="success-track-button"
-          >
-            <FiTruck aria-hidden="true" />
+          <div className="success-actions">
+            <Link
+              to="/products"
+              className="success-primary"
+            >
+              متابعة التسوق
+            </Link>
 
-            <span>تتبع الطلب</span>
+            <Link
+              to="/"
+              className="success-secondary"
+            >
+              العودة إلى الرئيسية
+            </Link>
+          </div>
+        </section>
 
-            <FiArrowLeft
-              className="success-action-arrow"
-              aria-hidden="true"
-            />
-          </Link>
-
-          {/* Shopping Action */}
-          <Link
-            to="/products"
-            className="success-primary"
-          >
-            متابعة التسوق
-          </Link>
-
-          {/* Home Action */}
-          <Link
-            to="/"
-            className="success-secondary"
-          >
-            العودة إلى الرئيسية
-          </Link>
-        </div>
-
-        {/* Inline Styles */}
         <style>{`
           .checkout-page {
             width: 100%;
@@ -482,7 +453,7 @@ export default function Checkout() {
           .checkout-success {
             width: min(620px, calc(100% - 32px));
             margin: 0 auto;
-            padding: 90px 0 100px;
+            padding: 100px 0;
             text-align: center;
           }
 
@@ -501,38 +472,30 @@ export default function Checkout() {
           .success-icon svg {
             width: 34px;
             height: 34px;
-            stroke-width: 2;
           }
 
           .success-eyebrow {
-            display: inline-block;
             color: #777;
             font-size: 11px;
-            letter-spacing: 0.18em;
+            letter-spacing: .18em;
             font-weight: 700;
           }
 
           .checkout-success h1 {
-            margin: 12px 0;
-            font-size: clamp(28px, 5vw, 42px);
-            line-height: 1.5;
-            font-weight: 700;
-            letter-spacing: -0.5px;
+            margin: 12px 0 12px;
+            font-size: clamp(30px, 5vw, 44px);
+            font-weight: 650;
           }
 
-          .success-description {
-            width: 100%;
-            max-width: 500px;
+          .checkout-success > p {
             margin: 0 auto;
+            max-width: 500px;
             color: #777;
             font-size: 14px;
-            line-height: 2.1;
+            line-height: 2;
           }
 
-          /* Order Number */
-
           .success-order-number {
-            width: 100%;
             margin: 30px auto 0;
             padding: 18px 22px;
             border: 1px solid #e5e5e5;
@@ -541,302 +504,60 @@ export default function Checkout() {
             align-items: center;
             justify-content: space-between;
             gap: 20px;
-            box-sizing: border-box;
           }
 
           .success-order-number span {
             color: #888;
             font-size: 12px;
-            font-weight: 500;
           }
 
           .success-order-number strong {
-            color: #171717;
             font-size: 15px;
-            font-weight: 700;
-            letter-spacing: 0.06em;
-            overflow-wrap: anywhere;
+            letter-spacing: .08em;
           }
-
-          /* Tracking Notice */
-
-          .tracking-notice {
-            width: 100%;
-            margin-top: 16px;
-            padding: 20px;
-            box-sizing: border-box;
-            display: flex;
-            align-items: flex-start;
-            gap: 14px;
-            text-align: right;
-            border: 1px solid #e8e8e8;
-            background: #f5f5f3;
-          }
-
-          .tracking-notice-icon {
-            width: 42px;
-            height: 42px;
-            flex: 0 0 42px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #fff;
-            color: #222;
-            border: 1px solid #e5e5e5;
-          }
-
-          .tracking-notice-icon svg {
-            width: 19px;
-            height: 19px;
-          }
-
-          .tracking-notice-content {
-            min-width: 0;
-            flex: 1;
-          }
-
-          .tracking-notice-content h2 {
-            margin: 0 0 5px;
-            color: #222;
-            font-size: 14px;
-            font-weight: 700;
-            line-height: 1.8;
-          }
-
-          .tracking-notice-content p {
-            margin: 0;
-            color: #777;
-            font-size: 12px;
-            line-height: 2;
-          }
-
-          /* Actions */
 
           .success-actions {
-            width: 100%;
             margin-top: 28px;
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
           }
 
-          .success-actions a {
-            box-sizing: border-box;
+          .success-primary,
+          .success-secondary {
             min-height: 50px;
-            padding: 12px 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 9px;
             text-decoration: none;
-            font-family: inherit;
             font-size: 13px;
             font-weight: 600;
-            line-height: 1.5;
-            transition:
-              background-color 0.2s ease,
-              border-color 0.2s ease,
-              color 0.2s ease,
-              transform 0.2s ease;
           }
-
-          .success-actions a:focus-visible {
-            outline: 2px solid #111;
-            outline-offset: 4px;
-          }
-
-          /* Track Order */
-
-          .success-track-button {
-            grid-column: 1 / -1;
-            width: 100%;
-            min-height: 56px !important;
-            background: #111;
-            color: #fff;
-            border: 1px solid #111;
-          }
-
-          .success-track-button > svg:first-child {
-            width: 18px;
-            height: 18px;
-            flex-shrink: 0;
-          }
-
-          .success-action-arrow {
-            width: 16px;
-            height: 16px;
-            margin-right: 4px;
-            transition: transform 0.2s ease;
-          }
-
-          .success-track-button:hover {
-            background: #2d2d2d;
-            border-color: #2d2d2d;
-          }
-
-          .success-track-button:hover
-          .success-action-arrow {
-            transform: translateX(-4px);
-          }
-
-          /* Continue Shopping */
 
           .success-primary {
-            background: #fff;
-            color: #171717;
-            border: 1px solid #dcdcdc;
+            background: #111;
+            color: #fff;
           }
-
-          .success-primary:hover {
-            background: #f3f3f3;
-            border-color: #cfcfcf;
-          }
-
-          /* Home */
 
           .success-secondary {
+            border: 1px solid #ddd;
             background: #fff;
-            color: #555;
-            border: 1px solid #dcdcdc;
+            color: #222;
           }
-
-          .success-secondary:hover {
-            background: #f3f3f3;
-            color: #171717;
-            border-color: #cfcfcf;
-          }
-
-          /* Tablet */
-
-          @media (max-width: 640px) {
-            .checkout-success {
-              padding: 70px 0 80px;
-            }
-
-            .success-order-number {
-              padding: 16px;
-            }
-
-            .tracking-notice {
-              padding: 16px;
-            }
-
-            .success-actions {
-              gap: 9px;
-            }
-          }
-
-          /* Mobile */
 
           @media (max-width: 520px) {
             .checkout-success {
-              width: min(100% - 28px, 620px);
-              padding: 60px 0 70px;
-            }
-
-            .success-icon {
-              width: 68px;
-              height: 68px;
-              margin-bottom: 20px;
-            }
-
-            .success-icon svg {
-              width: 30px;
-              height: 30px;
-            }
-
-            .checkout-success h1 {
-              margin-top: 10px;
-              font-size: 28px;
-              line-height: 1.6;
-            }
-
-            .success-description {
-              font-size: 13px;
-              line-height: 2;
-            }
-
-            .success-order-number {
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-              gap: 8px;
-              padding: 16px 12px;
-            }
-
-            .success-order-number strong {
-              max-width: 100%;
-              font-size: 14px;
-              text-align: center;
-            }
-
-            .tracking-notice {
-              align-items: flex-start;
-              gap: 11px;
-              padding: 15px;
-            }
-
-            .tracking-notice-icon {
-              width: 36px;
-              height: 36px;
-              flex-basis: 36px;
-            }
-
-            .tracking-notice-content h2 {
-              font-size: 13px;
-            }
-
-            .tracking-notice-content p {
-              font-size: 11px;
-              line-height: 2;
+              padding: 70px 0;
             }
 
             .success-actions {
               grid-template-columns: 1fr;
-              gap: 10px;
-              margin-top: 24px;
-            }
-
-            .success-track-button {
-              grid-column: auto;
-              min-height: 54px !important;
-            }
-
-            .success-primary,
-            .success-secondary {
-              min-height: 50px;
-            }
-          }
-
-          /* Small Mobile */
-
-          @media (max-width: 360px) {
-            .checkout-success {
-              width: calc(100% - 24px);
-            }
-
-            .checkout-success h1 {
-              font-size: 25px;
-            }
-
-            .tracking-notice-content p {
-              font-size: 10px;
-            }
-          }
-
-          /* Reduced Motion */
-
-          @media (prefers-reduced-motion: reduce) {
-            .success-actions a,
-            .success-action-arrow {
-              transition: none;
             }
           }
         `}</style>
-      </section>
-    </main>
-  );
-}
+      </main>
+    );
+  }
 
   /* ============================================================
      EMPTY CART
@@ -2535,3 +2256,4 @@ export default function Checkout() {
     </main>
   );
 }
+

@@ -63,7 +63,7 @@ export default function AdminSidebar({
     },
     {
       label: "Orders",
-      path: "/admin/orders",
+      path: "/admin/OrdersPage",
       icon: FiShoppingBag,
     },
     {

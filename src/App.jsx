@@ -31,6 +31,7 @@ import Search from "./pages/home/Search";
 import Product from "./pages/home/Product";
 import About from "./pages/home/About";
 import Shipping from "./pages/home/Shipping";
+import TrackOrder from "./pages/home/TrackOrder";
 import Returns from "./pages/home/Returns";
 import Privacy from "./pages/home/Privacy";
 import NotFound from "./pages/NotFound";
@@ -42,6 +43,10 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AddProduct from "./pages/admin/AddProduct";
 import ProductsAdmin from "./pages/admin/Products";
 import ShippingSiteng from "./pages/admin/Shipping";
+import DashboardAdmin from "./pages/home/AdminDashboard";
+import OrdersPage from "./pages/admin/OrdersPage";
+
+
 
 
 export default function App() {
@@ -124,6 +129,19 @@ function AppContent() {
             element={<ShippingSiteng />}
           />
         </Route>
+       <Route element={<AdminProtectedRoute />}>
+          <Route
+            path="/admin/AdminDashboard"
+            element={<DashboardAdmin />}
+          />
+        </Route>
+        <Route element={<AdminProtectedRoute />}>
+          <Route
+            path="/admin/ordersPage"
+            element={<OrdersPage />}
+          />
+        </Route>
+ 
 
         {/* ================================
             STORE ROUTES
@@ -174,6 +192,7 @@ function AppContent() {
           path="/checkout"
           element={<Checkout />}
         />
+        <Route path="/track-order" element={<TrackOrder />} />
 
         <Route
           path="/about"

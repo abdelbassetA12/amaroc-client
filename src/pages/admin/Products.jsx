@@ -29,6 +29,8 @@ import {
   FiX,
 } from "react-icons/fi";
  import API_BASE from "../../config/api";
+import AdminHeader from "../../components/admin/AdminHeader";
+import AdminSidebar from "../../components/admin/AdminSidebar";
 
  
 
@@ -190,6 +192,8 @@ const getBadgeLabel = (product) => {
 };
 
 export default function Products() {
+   const [sidebarOpen, setSidebarOpen] =
+      useState(false);
   const navigate = useNavigate();
 
   const [products, setProducts] = useState([]);
@@ -790,12 +794,25 @@ export default function Products() {
   // =========================================================
   // RENDER
   // =========================================================
-
-  return (
+ return (
     <div
       className="products-page"
-      dir="rtl"
+      
     >
+      <AdminSidebar
+              isOpen={sidebarOpen}
+              onClose={() =>
+                setSidebarOpen(false)
+              }
+            />
+
+      <div className="products-content">
+         <AdminHeader
+                  onMenuClick={() =>
+                    setSidebarOpen(true)
+                  }
+                />
+
       {/* =====================================================
           HEADER
       ===================================================== */}
@@ -2043,6 +2060,9 @@ export default function Products() {
         </div>
       )}
 
+      
+
+      </div>
       <style>
         {`
         /* =========================================================
@@ -2060,6 +2080,16 @@ export default function Products() {
     Arial,
     sans-serif;
   padding-bottom: 50px;
+}
+
+/* =========================================================
+   SIDEBAR LAYOUT
+========================================================= */
+
+.products-content {
+  width: calc(100% - 270px);
+  min-width: 0;
+  margin-left: 270px;
 }
 
 /* =========================================================
@@ -3646,6 +3676,11 @@ export default function Products() {
 }
 
 @media (max-width: 900px) {
+  .products-content {
+    width: 100%;
+    margin-left: 0;
+  }
+
   .products-header-content {
     min-height: auto;
     padding: 25px 0;
@@ -3773,6 +3808,9 @@ export default function Products() {
       </style>
     </div>
   );
+  
+ 
+
 }
 
 // =========================================================

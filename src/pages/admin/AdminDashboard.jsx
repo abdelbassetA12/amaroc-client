@@ -1,10 +1,7 @@
+ 
 import { useState } from "react";
 
 import {
-  FiMenu,
-  FiBell,
-  FiSearch,
-  FiTrendingUp,
   FiShoppingBag,
   FiPackage,
   FiUsers,
@@ -18,6 +15,7 @@ import {
 
 import { useAdminAuth } from "../../context/AdminAuthContext";
 
+import AdminHeader from "../../components/admin/AdminHeader";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 
 export default function AdminDashboard() {
@@ -32,6 +30,7 @@ export default function AdminDashboard() {
   const firstName =
     adminName.split(" ")[0] ||
     "Administrator";
+
 
   const stats = [
     {
@@ -63,6 +62,7 @@ export default function AdminDashboard() {
       icon: FiUsers,
     },
   ];
+
 
   const recentOrders = [
     {
@@ -102,8 +102,10 @@ export default function AdminDashboard() {
     },
   ];
 
+
   return (
     <div className="admin-dashboard">
+
 
       {/* ==================================================
           SIDEBAR
@@ -128,85 +130,11 @@ export default function AdminDashboard() {
             HEADER
         ================================================= */}
 
-        <header className="admin-dashboard__header">
-
-          <div className="admin-dashboard__header-left">
-
-            <button
-              type="button"
-              className="admin-dashboard__menu-button"
-              onClick={() =>
-                setSidebarOpen(true)
-              }
-              aria-label="Open navigation"
-            >
-              <FiMenu />
-            </button>
-
-            <div>
-              <div className="admin-dashboard__breadcrumb">
-                ADMIN / DASHBOARD
-              </div>
-
-              <h1>
-                Dashboard
-              </h1>
-            </div>
-
-          </div>
-
-
-          <div className="admin-dashboard__header-right">
-
-            <div className="admin-dashboard__search">
-
-              <FiSearch />
-
-              <input
-                type="search"
-                placeholder="Search..."
-                aria-label="Search"
-              />
-
-            </div>
-
-
-            <button
-              type="button"
-              className="admin-dashboard__icon-button"
-              aria-label="Notifications"
-            >
-              <FiBell />
-
-              <span className="admin-dashboard__notification-dot" />
-            </button>
-
-
-            <div className="admin-dashboard__header-user">
-
-              <div className="admin-dashboard__header-avatar">
-                {adminName
-                  .slice(0, 2)
-                  .toUpperCase()}
-              </div>
-
-              <div className="admin-dashboard__header-user-info">
-
-                <strong>
-                  {adminName}
-                </strong>
-
-                <span>
-                  Administrator
-                </span>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </header>
+        <AdminHeader
+          onMenuClick={() =>
+            setSidebarOpen(true)
+          }
+        />
 
 
         {/* =================================================
@@ -282,13 +210,16 @@ export default function AdminDashboard() {
 
                   </div>
 
+
                   <div className="admin-dashboard__stat-title">
                     {stat.title}
                   </div>
 
+
                   <div className="admin-dashboard__stat-value">
                     {stat.value}
                   </div>
+
 
                   <div className="admin-dashboard__stat-change">
 
@@ -331,6 +262,7 @@ export default function AdminDashboard() {
               <div className="admin-dashboard__card-header">
 
                 <div>
+
                   <span className="admin-dashboard__card-eyebrow">
                     PERFORMANCE
                   </span>
@@ -338,13 +270,16 @@ export default function AdminDashboard() {
                   <h3>
                     Sales overview
                   </h3>
+
                 </div>
+
 
                 <select
                   className="admin-dashboard__select"
                   defaultValue="7"
                   aria-label="Sales period"
                 >
+
                   <option value="7">
                     Last 7 days
                   </option>
@@ -356,6 +291,7 @@ export default function AdminDashboard() {
                   <option value="90">
                     Last 90 days
                   </option>
+
                 </select>
 
               </div>
@@ -364,22 +300,29 @@ export default function AdminDashboard() {
               <div className="admin-dashboard__chart">
 
                 <div className="admin-dashboard__chart-values">
+
                   <span>$8k</span>
                   <span>$6k</span>
                   <span>$4k</span>
                   <span>$2k</span>
                   <span>$0</span>
+
                 </div>
+
 
                 <div className="admin-dashboard__chart-area">
 
+
                   <div className="admin-dashboard__chart-lines">
+
                     <span />
                     <span />
                     <span />
                     <span />
                     <span />
+
                   </div>
+
 
                   <div className="admin-dashboard__chart-bars">
 
@@ -434,7 +377,9 @@ export default function AdminDashboard() {
 
                   </div>
 
+
                   <div className="admin-dashboard__chart-labels">
+
                     <span>Mon</span>
                     <span>Tue</span>
                     <span>Wed</span>
@@ -442,6 +387,7 @@ export default function AdminDashboard() {
                     <span>Fri</span>
                     <span>Sat</span>
                     <span>Sun</span>
+
                   </div>
 
                 </div>
@@ -452,7 +398,7 @@ export default function AdminDashboard() {
 
 
             {/* ===============================================
-                QUICK SUMMARY
+                STORE ACTIVITY
             =============================================== */}
 
             <article className="admin-dashboard__card admin-dashboard__activity-card">
@@ -460,6 +406,7 @@ export default function AdminDashboard() {
               <div className="admin-dashboard__card-header">
 
                 <div>
+
                   <span className="admin-dashboard__card-eyebrow">
                     ACTIVITY
                   </span>
@@ -467,7 +414,9 @@ export default function AdminDashboard() {
                   <h3>
                     Store activity
                   </h3>
+
                 </div>
+
 
                 <div className="admin-dashboard__activity-icon">
                   <FiActivity />
@@ -478,11 +427,13 @@ export default function AdminDashboard() {
 
               <div className="admin-dashboard__activity-list">
 
+
                 <div className="admin-dashboard__activity-item">
 
                   <div className="admin-dashboard__activity-dot admin-dashboard__activity-dot--blue" />
 
                   <div>
+
                     <strong>
                       24 new orders
                     </strong>
@@ -490,6 +441,7 @@ export default function AdminDashboard() {
                     <span>
                       Received today
                     </span>
+
                   </div>
 
                   <b>
@@ -504,6 +456,7 @@ export default function AdminDashboard() {
                   <div className="admin-dashboard__activity-dot admin-dashboard__activity-dot--green" />
 
                   <div>
+
                     <strong>
                       18 products sold
                     </strong>
@@ -511,6 +464,7 @@ export default function AdminDashboard() {
                     <span>
                       In the last 24 hours
                     </span>
+
                   </div>
 
                   <b>
@@ -525,6 +479,7 @@ export default function AdminDashboard() {
                   <div className="admin-dashboard__activity-dot admin-dashboard__activity-dot--orange" />
 
                   <div>
+
                     <strong>
                       7 pending orders
                     </strong>
@@ -532,6 +487,7 @@ export default function AdminDashboard() {
                     <span>
                       Need your attention
                     </span>
+
                   </div>
 
                   <b>
@@ -546,6 +502,7 @@ export default function AdminDashboard() {
                   <div className="admin-dashboard__activity-dot admin-dashboard__activity-dot--purple" />
 
                   <div>
+
                     <strong>
                       42 new customers
                     </strong>
@@ -553,6 +510,7 @@ export default function AdminDashboard() {
                     <span>
                       This week
                     </span>
+
                   </div>
 
                   <b>
@@ -560,6 +518,7 @@ export default function AdminDashboard() {
                   </b>
 
                 </div>
+
 
               </div>
 
@@ -574,9 +533,11 @@ export default function AdminDashboard() {
 
           <section className="admin-dashboard__card admin-dashboard__orders-card">
 
+
             <div className="admin-dashboard__card-header">
 
               <div>
+
                 <span className="admin-dashboard__card-eyebrow">
                   ORDERS
                 </span>
@@ -584,7 +545,9 @@ export default function AdminDashboard() {
                 <h3>
                   Recent orders
                 </h3>
+
               </div>
+
 
               <button
                 type="button"
@@ -602,7 +565,9 @@ export default function AdminDashboard() {
               <table className="admin-dashboard__table">
 
                 <thead>
+
                   <tr>
+
                     <th>
                       Order
                     </th>
@@ -622,8 +587,11 @@ export default function AdminDashboard() {
                     <th>
                       Status
                     </th>
+
                   </tr>
+
                 </thead>
+
 
                 <tbody>
 
@@ -632,36 +600,51 @@ export default function AdminDashboard() {
                       <tr key={order.id}>
 
                         <td>
+
                           <strong className="admin-dashboard__order-id">
                             {order.id}
                           </strong>
+
                         </td>
 
+
                         <td>
+
                           <span className="admin-dashboard__customer">
                             {order.customer}
                           </span>
+
                         </td>
 
+
                         <td>
+
                           <span className="admin-dashboard__product">
                             {order.product}
                           </span>
+
                         </td>
 
+
                         <td>
+
                           <strong>
                             {order.amount}
                           </strong>
+
                         </td>
+
 
                         <td>
 
                           <span
                             className={`admin-dashboard__status admin-dashboard__status--${order.status.toLowerCase()}`}
                           >
+
                             <span />
+
                             {order.status}
+
                           </span>
 
                         </td>
@@ -683,9 +666,11 @@ export default function AdminDashboard() {
 
       </div>
 
+
       <style>
         {`
-        /* =========================================================
+
+/* =========================================================
    RESET
 ========================================================= */
 
@@ -732,248 +717,6 @@ export default function AdminDashboard() {
   min-height: 100vh;
 
   margin-left: 270px;
-}
-
-
-/* =========================================================
-   HEADER
-========================================================= */
-
-.admin-dashboard__header {
-  width: 100%;
-  height: 78px;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  gap: 25px;
-
-  padding:
-    0 34px;
-
-  border-bottom:
-    1px solid
-    #e9edf3;
-
-  background:
-    rgba(255, 255, 255, 0.92);
-
-  backdrop-filter: blur(12px);
-}
-
-.admin-dashboard__header-left {
-  display: flex;
-  align-items: center;
-
-  gap: 15px;
-
-  min-width: 0;
-}
-
-.admin-dashboard__breadcrumb {
-  margin-bottom: 5px;
-
-  color: #94a3b8;
-
-  font-size: 8px;
-  font-weight: 800;
-
-  letter-spacing: 0.14em;
-}
-
-.admin-dashboard__header h1 {
-  margin: 0;
-
-  color: #0f172a;
-
-  font-size: 20px;
-  font-weight: 800;
-
-  line-height: 1.2;
-
-  letter-spacing: -0.025em;
-}
-
-.admin-dashboard__menu-button {
-  display: none;
-
-  width: 38px;
-  height: 38px;
-
-  align-items: center;
-  justify-content: center;
-
-  padding: 0;
-
-  border:
-    1px solid
-    #e2e8f0;
-
-  border-radius: 9px;
-
-  color: #475569;
-
-  background: #ffffff;
-
-  cursor: pointer;
-}
-
-.admin-dashboard__header-right {
-  display: flex;
-  align-items: center;
-
-  gap: 14px;
-}
-
-.admin-dashboard__search {
-  width: 210px;
-  height: 38px;
-
-  display: flex;
-  align-items: center;
-
-  gap: 8px;
-
-  padding: 0 11px;
-
-  border:
-    1px solid
-    #e2e8f0;
-
-  border-radius: 9px;
-
-  background: #ffffff;
-}
-
-.admin-dashboard__search svg {
-  flex: 0 0 auto;
-
-  color: #94a3b8;
-
-  font-size: 15px;
-}
-
-.admin-dashboard__search input {
-  width: 100%;
-
-  padding: 0;
-
-  border: 0;
-  outline: 0;
-
-  color: #334155;
-
-  background: transparent;
-
-  font-family: inherit;
-
-  font-size: 10px;
-}
-
-.admin-dashboard__search input::placeholder {
-  color: #a8b2c0;
-}
-
-.admin-dashboard__icon-button {
-  position: relative;
-
-  width: 38px;
-  height: 38px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  padding: 0;
-
-  border:
-    1px solid
-    #e2e8f0;
-
-  border-radius: 9px;
-
-  color: #64748b;
-
-  background: #ffffff;
-
-  cursor: pointer;
-}
-
-.admin-dashboard__icon-button svg {
-  font-size: 16px;
-}
-
-.admin-dashboard__notification-dot {
-  position: absolute;
-
-  top: 8px;
-  right: 8px;
-
-  width: 5px;
-  height: 5px;
-
-  border-radius: 50%;
-
-  background: #ef4444;
-}
-
-.admin-dashboard__header-user {
-  display: flex;
-  align-items: center;
-
-  gap: 9px;
-
-  padding-left: 5px;
-}
-
-.admin-dashboard__header-avatar {
-  width: 34px;
-  height: 34px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 9px;
-
-  color: #dbeafe;
-
-  background:
-    linear-gradient(
-      135deg,
-      #2563eb,
-      #3b82f6
-    );
-
-  font-size: 9px;
-  font-weight: 800;
-}
-
-.admin-dashboard__header-user-info strong {
-  display: block;
-
-  max-width: 130px;
-
-  overflow: hidden;
-
-  color: #334155;
-
-  font-size: 10px;
-  font-weight: 700;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.admin-dashboard__header-user-info span {
-  display: block;
-
-  margin-top: 2px;
-
-  color: #94a3b8;
-
-  font-size: 8px;
 }
 
 
@@ -1693,10 +1436,6 @@ export default function AdminDashboard() {
       minmax(0, 1fr);
   }
 
-  .admin-dashboard__search {
-    width: 170px;
-  }
-
 }
 
 
@@ -1710,30 +1449,6 @@ export default function AdminDashboard() {
     width: 100%;
 
     margin-left: 0;
-  }
-
-  .admin-dashboard__menu-button {
-    display: flex;
-  }
-
-  .admin-dashboard__header {
-    height: 68px;
-
-    padding:
-      0
-      18px;
-  }
-
-  .admin-dashboard__search {
-    display: none;
-  }
-
-  .admin-dashboard__header-user-info {
-    display: none;
-  }
-
-  .admin-dashboard__header-right {
-    gap: 9px;
   }
 
   .admin-dashboard__content {
@@ -1819,16 +1534,6 @@ export default function AdminDashboard() {
       35px;
   }
 
-  .admin-dashboard__header {
-    padding:
-      0
-      14px;
-  }
-
-  .admin-dashboard__header h1 {
-    font-size: 18px;
-  }
-
   .admin-dashboard__stats {
     gap: 8px;
   }
@@ -1852,9 +1557,14 @@ export default function AdminDashboard() {
     font-size: 8px;
   }
 
-}`}
+}
+
+`}
       </style>
 
     </div>
   );
 }
+ 
+
+

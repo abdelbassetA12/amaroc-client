@@ -18,7 +18,8 @@ import {
   FiAlertCircle,
   FiPackage,
 } from "react-icons/fi";
-
+import AdminHeader from "../../components/admin/AdminHeader";
+import AdminSidebar from "../../components/admin/AdminSidebar";
 import API_BASE from "../../config/api";
  
 
@@ -48,6 +49,8 @@ const EMPTY_SETTINGS = {
 };
 
 export default function Shipping() {
+   const [sidebarOpen, setSidebarOpen] =
+    useState(false);
   /* ============================================================
      STATE
   ============================================================ */
@@ -757,10 +760,26 @@ export default function Shipping() {
   ============================================================ */
 
   return (
+    <div className="admin-shipping">
+      <AdminSidebar
+                    isOpen={sidebarOpen}
+                    onClose={() =>
+                      setSidebarOpen(false)
+                    }
+                  />
+
     <div className="shipping-page">
-      {/* ======================================================
+       <AdminHeader
+                        onMenuClick={() =>
+                          setSidebarOpen(true)
+                        }
+                      />
+
+      <div className="main">
+        {/* ======================================================
           TOAST
       ====================================================== */}
+      
 
       {toast.visible && (
         <div
@@ -1835,66 +1854,136 @@ export default function Shipping() {
           </div>
         </div>
       )}
+
+      </div>
+      
       <style>
-        {`
-        /* ============================================================
-   SHIPPING PAGE
+{`
+
+/* ============================================================
+   BASE
+============================================================ */
+
+.admin-shipping,
+.admin-shipping *,
+.admin-shipping *::before,
+.admin-shipping *::after {
+  box-sizing: border-box;
+}
+
+.admin-shipping {
+  width: 100%;
+  min-height: 100vh;
+
+  display: flex;
+
+  color: #0f172a;
+
+  background: #f6f8fc;
+
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+
+/* ============================================================
+   PAGE
 ============================================================ */
 
 .shipping-page {
-  width: 100%;
-  min-height: 100%;
-  padding: 28px;
-  direction: rtl;
+  width: calc(100% - 270px);
+  min-width: 0;
+  min-height: 100vh;
+
+  margin-left: 270px;
+ 
+
+
+
   color: #1f2937;
 }
+
+.main {
+ padding: 0 34px 34px;
+ }
+
 
 /* ============================================================
    HEADER
 ============================================================ */
 
 .shipping-header {
-  margin-bottom: 24px;
+  width: 100%;
+
+  padding: 28px 0 24px;
+
+  margin-bottom: 0;
 }
 
 .shipping-header-content {
+  width: 100%;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+
+  gap: 24px;
 }
 
 .shipping-title-wrapper {
+  min-width: 0;
+
   display: flex;
   align-items: center;
+
   gap: 15px;
 }
 
 .shipping-title-icon {
   width: 52px;
   height: 52px;
-  border-radius: 15px;
+
+  flex: 0 0 52px;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
+  border-radius: 15px;
+
   background: #eef8f1;
   color: #2e7d32;
+
   font-size: 24px;
-  flex-shrink: 0;
+}
+
+.shipping-title-wrapper > div {
+  min-width: 0;
 }
 
 .shipping-title-wrapper h1 {
   margin: 0;
+
+  color: #17251a;
+
   font-size: 27px;
   line-height: 1.3;
   font-weight: 800;
-  color: #17251a;
+
+  letter-spacing: -0.025em;
 }
 
 .shipping-title-wrapper p {
   margin: 5px 0 0;
+
   color: #7b857d;
+
   font-size: 14px;
+  line-height: 1.5;
 }
 
 .shipping-primary-btn,
@@ -1902,36 +1991,64 @@ export default function Shipping() {
 .shipping-save-settings-btn,
 .shipping-modal-save {
   border: none;
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
+
   gap: 8px;
+
   cursor: pointer;
+
+  font-family: inherit;
+
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease,
-    background 0.2s ease;
+    background 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .shipping-primary-btn {
   min-height: 44px;
+
   padding: 0 18px;
+
+  flex-shrink: 0;
+
   border-radius: 11px;
+
   background: #2e7d32;
   color: #fff;
+
   font-size: 14px;
   font-weight: 700;
+
   box-shadow: 0 5px 14px rgba(46, 125, 50, 0.16);
 }
 
 .shipping-primary-btn:hover {
   background: #256b29;
+
   transform: translateY(-1px);
+
+  box-shadow: 0 7px 18px rgba(46, 125, 50, 0.2);
 }
 
 .shipping-primary-btn:active {
   transform: translateY(0);
 }
+
+.shipping-primary-btn:disabled {
+  opacity: 0.65;
+
+  cursor: not-allowed;
+
+  transform: none;
+
+  box-shadow: none;
+}
+
 
 /* ============================================================
    SETTINGS CARD
@@ -1939,117 +2056,198 @@ export default function Shipping() {
 
 .shipping-settings-card,
 .shipping-methods-card {
+  width: 100%;
+
   background: #fff;
+
   border: 1px solid #e7ece8;
+
   border-radius: 17px;
+
   box-shadow: 0 5px 24px rgba(24, 39, 27, 0.045);
 }
 
 .shipping-settings-card {
   margin-bottom: 22px;
+
   padding: 24px;
 }
 
 .shipping-card-heading {
   display: flex;
   align-items: center;
+
   gap: 13px;
+
   margin-bottom: 23px;
 }
 
 .shipping-card-heading-icon {
   width: 42px;
   height: 42px;
-  border-radius: 12px;
+
+  flex: 0 0 42px;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
+  border-radius: 12px;
+
   background: #f1f7f2;
   color: #2e7d32;
+
   font-size: 19px;
+}
+
+.shipping-card-heading > div {
+  min-width: 0;
 }
 
 .shipping-card-heading h2,
 .shipping-methods-header h2 {
   margin: 0;
-  font-size: 18px;
-  font-weight: 800;
+
   color: #202a22;
+
+  font-size: 18px;
+  line-height: 1.35;
+  font-weight: 800;
 }
 
 .shipping-card-heading p,
 .shipping-methods-header p {
   margin: 4px 0 0;
+
   color: #89918b;
+
   font-size: 13px;
+  line-height: 1.5;
 }
+
+
+/* ============================================================
+   SETTINGS GRID
+============================================================ */
 
 .shipping-settings-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
   gap: 14px;
 }
 
 .shipping-setting-box {
   min-height: 91px;
+
   padding: 15px;
+
   border: 1px solid #e9eeea;
+
   border-radius: 13px;
+
   background: #fbfcfb;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   gap: 12px;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.shipping-setting-box:hover {
+  border-color: #dfe8e1;
+
+  background: #ffffff;
+
+  box-shadow: 0 4px 14px rgba(24, 39, 27, 0.035);
 }
 
 .shipping-setting-info {
+  min-width: 0;
+
   display: flex;
   align-items: center;
+
   gap: 11px;
-  min-width: 0;
 }
 
 .shipping-setting-icon {
   width: 38px;
   height: 38px;
-  flex-shrink: 0;
+
+  flex: 0 0 38px;
+
   border-radius: 10px;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   background: #eef6ef;
   color: #2e7d32;
 }
 
+.shipping-setting-info > div {
+  min-width: 0;
+}
+
 .shipping-setting-info strong {
   display: block;
-  color: #273229;
-  font-size: 13px;
+
   margin-bottom: 4px;
+
+  color: #273229;
+
+  font-size: 13px;
+  line-height: 1.3;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .shipping-setting-info span {
   display: block;
+
   color: #89928b;
+
   font-size: 11px;
+
   line-height: 1.5;
 }
+
 
 /* ============================================================
    SETTING FIELD
 ============================================================ */
 
 .shipping-setting-field {
+  min-width: 0;
+
   padding: 15px;
+
   border: 1px solid #e9eeea;
+
   border-radius: 13px;
+
   background: #fbfcfb;
 }
 
 .shipping-setting-field label {
   display: block;
+
   margin-bottom: 9px;
+
   color: #303b33;
+
   font-size: 12px;
   font-weight: 700;
 }
@@ -2057,13 +2255,21 @@ export default function Shipping() {
 .shipping-setting-field input {
   width: 100%;
   height: 40px;
+
   padding: 0 11px;
+
   border: 1px solid #dfe6e1;
+
   border-radius: 9px;
+
   background: #fff;
   color: #273129;
+
   outline: none;
+
+  font-family: inherit;
   font-size: 13px;
+
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease;
@@ -2071,13 +2277,16 @@ export default function Shipping() {
 
 .shipping-setting-field input:focus {
   border-color: #5ba360;
-  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.09);
+
+  box-shadow:
+    0 0 0 3px rgba(76, 175, 80, 0.09);
 }
 
 .shipping-input-with-suffix {
+  position: relative;
+
   display: flex;
   align-items: center;
-  position: relative;
 }
 
 .shipping-input-with-suffix input {
@@ -2086,8 +2295,11 @@ export default function Shipping() {
 
 .shipping-input-with-suffix span {
   position: absolute;
+
   left: 11px;
+
   color: #7e897f;
+
   font-size: 11px;
   font-weight: 700;
 }
@@ -2095,8 +2307,10 @@ export default function Shipping() {
 .shipping-input-with-suffix input:disabled {
   background: #f1f3f2;
   color: #a1a9a3;
+
   cursor: not-allowed;
 }
+
 
 /* ============================================================
    SWITCH
@@ -2104,37 +2318,58 @@ export default function Shipping() {
 
 .shipping-switch {
   position: relative;
-  display: inline-flex;
+
   width: 43px;
   height: 24px;
-  flex-shrink: 0;
+
+  flex: 0 0 43px;
+
+  display: inline-flex;
+
   cursor: pointer;
 }
 
 .shipping-switch input {
   position: absolute;
+
+  width: 1px;
+  height: 1px;
+
   opacity: 0;
+
   pointer-events: none;
 }
 
 .shipping-switch > span {
   position: absolute;
+
   inset: 0;
+
   border-radius: 999px;
+
   background: #d8ded9;
+
   transition: background 0.2s ease;
 }
 
 .shipping-switch > span::after {
   content: "";
+
   position: absolute;
+
   width: 18px;
   height: 18px;
+
   top: 3px;
   right: 3px;
+
   border-radius: 50%;
+
   background: #fff;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.14);
+
+  box-shadow:
+    0 2px 5px rgba(0, 0, 0, 0.14);
+
   transition: transform 0.2s ease;
 }
 
@@ -2146,6 +2381,7 @@ export default function Shipping() {
   transform: translateX(-19px);
 }
 
+
 /* ============================================================
    SETTINGS FOOTER
 ============================================================ */
@@ -2154,23 +2390,33 @@ export default function Shipping() {
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   gap: 15px;
+
   margin-top: 17px;
   padding-top: 17px;
+
   border-top: 1px solid #edf0ed;
 }
 
 .shipping-free-preview {
+  min-width: 0;
+
   display: flex;
   align-items: center;
+
   gap: 8px;
+
   color: #657068;
+
   font-size: 12px;
+  line-height: 1.5;
 }
 
 .shipping-free-preview svg {
-  color: #3d9144;
   flex-shrink: 0;
+
+  color: #3d9144;
 }
 
 .shipping-free-preview strong {
@@ -2179,10 +2425,16 @@ export default function Shipping() {
 
 .shipping-save-settings-btn {
   min-height: 40px;
+
+  flex-shrink: 0;
+
   padding: 0 15px;
+
   border-radius: 9px;
+
   background: #edf7ee;
   color: #2e7d32;
+
   font-size: 12px;
   font-weight: 700;
 }
@@ -2193,8 +2445,10 @@ export default function Shipping() {
 
 .shipping-save-settings-btn:disabled {
   opacity: 0.65;
+
   cursor: not-allowed;
 }
+
 
 /* ============================================================
    STATS
@@ -2202,48 +2456,79 @@ export default function Shipping() {
 
 .shipping-stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
   gap: 14px;
+
   margin-bottom: 22px;
 }
 
 .shipping-stat-card {
+  min-width: 0;
+
   padding: 17px;
+
   border: 1px solid #e7ece8;
+
   border-radius: 14px;
+
   background: #fff;
+
   display: flex;
   align-items: center;
+
   gap: 13px;
-  box-shadow: 0 4px 18px rgba(24, 39, 27, 0.035);
+
+  box-shadow:
+    0 4px 18px rgba(24, 39, 27, 0.035);
 }
 
 .shipping-stat-icon {
   width: 42px;
   height: 42px;
-  flex-shrink: 0;
+
+  flex: 0 0 42px;
+
   border-radius: 11px;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   background: #f0f7f1;
   color: #2e7d32;
+
   font-size: 18px;
+}
+
+.shipping-stat-card > div {
+  min-width: 0;
 }
 
 .shipping-stat-card span {
   display: block;
+
   margin-bottom: 4px;
+
   color: #8a938c;
+
   font-size: 11px;
 }
 
 .shipping-stat-card strong {
   display: block;
+
   color: #253027;
+
   font-size: 21px;
+  line-height: 1.2;
   font-weight: 800;
+
+  white-space: nowrap;
 }
+
 
 /* ============================================================
    METHODS
@@ -2254,27 +2539,45 @@ export default function Shipping() {
 }
 
 .shipping-methods-header {
+  min-width: 0;
+
   padding: 22px 24px;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   gap: 15px;
+}
+
+.shipping-methods-header > div {
+  min-width: 0;
 }
 
 .shipping-secondary-btn {
   min-height: 38px;
+
+  flex-shrink: 0;
+
   padding: 0 14px;
-  border-radius: 9px;
+
   border: 1px solid #dce7de;
+
+  border-radius: 9px;
+
   background: #f7faf7;
   color: #2e7d32;
+
   font-size: 12px;
   font-weight: 700;
 }
 
 .shipping-secondary-btn:hover {
   background: #edf6ee;
+
+  border-color: #cfe0d1;
 }
+
 
 /* ============================================================
    FILTERS
@@ -2282,71 +2585,120 @@ export default function Shipping() {
 
 .shipping-filters {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) 170px 170px;
+
+  grid-template-columns:
+    minmax(260px, 1fr)
+    170px
+    170px;
+
   gap: 10px;
+
   padding: 0 24px 18px;
 }
 
 .shipping-search {
-  height: 42px;
   position: relative;
+
+  height: 42px;
+
   display: flex;
   align-items: center;
 }
 
 .shipping-search > svg {
   position: absolute;
+
   right: 12px;
+
   color: #9aa39d;
+
   pointer-events: none;
 }
 
 .shipping-search input {
   width: 100%;
   height: 100%;
-  padding: 0 38px 0 38px;
+
+  padding: 0 38px;
+
   border: 1px solid #e0e6e1;
+
   border-radius: 10px;
+
   outline: none;
+
   background: #fff;
   color: #29332c;
+
+  font-family: inherit;
   font-size: 12px;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .shipping-search input:focus {
   border-color: #65a969;
-  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.08);
+
+  box-shadow:
+    0 0 0 3px rgba(76, 175, 80, 0.08);
 }
 
 .shipping-search button {
   position: absolute;
+
   left: 8px;
+
   width: 26px;
   height: 26px;
+
+  padding: 0;
+
   border: none;
+
   background: transparent;
   color: #8b958e;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   cursor: pointer;
 }
 
 .shipping-filters select {
+  width: 100%;
   height: 42px;
+
+  padding: 0 11px;
+
   border: 1px solid #e0e6e1;
+
   border-radius: 10px;
+
   background: #fff;
   color: #4c574f;
-  padding: 0 11px;
+
   outline: none;
+
+  font-family: inherit;
   font-size: 12px;
+
   cursor: pointer;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .shipping-filters select:focus {
   border-color: #65a969;
+
+  box-shadow:
+    0 0 0 3px rgba(76, 175, 80, 0.08);
 }
+
 
 /* ============================================================
    TABLE
@@ -2354,13 +2706,20 @@ export default function Shipping() {
 
 .shipping-table-wrapper {
   width: 100%;
+
   overflow-x: auto;
+  overflow-y: hidden;
+
   border-top: 1px solid #edf0ed;
+
+  scrollbar-width: thin;
 }
 
 .shipping-table {
   width: 100%;
+
   min-width: 940px;
+
   border-collapse: collapse;
 }
 
@@ -2370,19 +2729,28 @@ export default function Shipping() {
 
 .shipping-table th {
   padding: 13px 18px;
+
   text-align: right;
+
   color: #858f87;
+
   font-size: 10px;
   font-weight: 800;
+
   white-space: nowrap;
+
   border-bottom: 1px solid #edf0ed;
 }
 
 .shipping-table td {
   padding: 15px 18px;
+
   border-bottom: 1px solid #f0f2f0;
+
   vertical-align: middle;
+
   color: #465148;
+
   font-size: 12px;
 }
 
@@ -2398,45 +2766,70 @@ export default function Shipping() {
   border-bottom: none;
 }
 
+
 /* ============================================================
    METHOD NAME
 ============================================================ */
 
 .shipping-method-name {
+  min-width: 190px;
+
   display: flex;
   align-items: center;
+
   gap: 11px;
-  min-width: 190px;
 }
 
 .shipping-method-icon {
   width: 39px;
   height: 39px;
+
+  flex: 0 0 39px;
+
   border-radius: 10px;
-  flex-shrink: 0;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   background: #f0f7f1;
   color: #2e7d32;
+
   font-size: 17px;
+}
+
+.shipping-method-name > div {
+  min-width: 0;
 }
 
 .shipping-method-name strong {
   display: block;
+
+  margin-bottom: 4px;
+
   color: #263128;
+
   font-size: 12px;
   font-weight: 800;
-  margin-bottom: 4px;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .shipping-method-name span {
   display: block;
+
   color: #969f98;
+
   font-size: 10px;
+
   direction: ltr;
   text-align: right;
+
+  white-space: nowrap;
 }
+
 
 /* ============================================================
    PRICE
@@ -2445,19 +2838,24 @@ export default function Shipping() {
 .shipping-price {
   display: flex;
   align-items: center;
+
   gap: 5px;
+
   white-space: nowrap;
 }
 
 .shipping-price svg {
-  font-size: 13px;
   color: #8b968e;
+
+  font-size: 13px;
 }
 
 .shipping-price span {
   color: #344037;
+
   font-weight: 700;
 }
+
 
 /* ============================================================
    DELIVERY
@@ -2466,28 +2864,38 @@ export default function Shipping() {
 .shipping-delivery {
   display: flex;
   align-items: center;
+
   gap: 6px;
+
   white-space: nowrap;
 }
 
 .shipping-delivery svg {
   color: #849088;
+
   font-size: 13px;
 }
+
 
 /* ============================================================
    BADGES
 ============================================================ */
 
 .shipping-badge {
+  min-height: 26px;
+
+  padding: 0 9px;
+
   display: inline-flex;
   align-items: center;
+
   gap: 5px;
-  min-height: 26px;
-  padding: 0 9px;
+
   border-radius: 999px;
+
   font-size: 10px;
   font-weight: 700;
+
   white-space: nowrap;
 }
 
@@ -2514,22 +2922,31 @@ export default function Shipping() {
 .shipping-status-dot {
   width: 6px;
   height: 6px;
+
+  flex: 0 0 6px;
+
   border-radius: 50%;
+
   background: currentColor;
 }
 
 .shipping-sort-order {
-  display: inline-flex;
   min-width: 28px;
   height: 28px;
+
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+
   border-radius: 8px;
+
   background: #f5f7f5;
   color: #657067;
+
   font-size: 11px;
   font-weight: 700;
 }
+
 
 /* ============================================================
    ACTIONS
@@ -2538,19 +2955,28 @@ export default function Shipping() {
 .shipping-actions {
   display: flex;
   align-items: center;
+
   gap: 6px;
 }
 
 .shipping-action-btn {
   width: 31px;
   height: 31px;
+
+  padding: 0;
+
   border: 1px solid #e5e9e6;
+
   border-radius: 8px;
+
   background: #fff;
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
+
   cursor: pointer;
+
   transition:
     background 0.2s ease,
     color 0.2s ease,
@@ -2559,6 +2985,7 @@ export default function Shipping() {
 
 .shipping-action-btn:disabled {
   opacity: 0.45;
+
   cursor: not-allowed;
 }
 
@@ -2607,19 +3034,26 @@ export default function Shipping() {
   border-color: #c5e3e7;
 }
 
+
 /* ============================================================
    PAGINATION
 ============================================================ */
 
 .shipping-pagination {
   min-height: 62px;
+
   padding: 12px 24px;
+
   border-top: 1px solid #edf0ed;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   gap: 15px;
+
   color: #89928c;
+
   font-size: 11px;
 }
 
@@ -2630,20 +3064,32 @@ export default function Shipping() {
 .shipping-pagination-controls {
   display: flex;
   align-items: center;
+
   gap: 10px;
 }
 
 .shipping-pagination-controls button {
   width: 32px;
   height: 32px;
+
+  padding: 0;
+
   border: 1px solid #e2e7e3;
+
   border-radius: 8px;
+
   background: #fff;
   color: #506057;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
 .shipping-pagination-controls button:hover:not(:disabled) {
@@ -2653,13 +3099,16 @@ export default function Shipping() {
 
 .shipping-pagination-controls button:disabled {
   opacity: 0.4;
+
   cursor: not-allowed;
 }
 
 .shipping-pagination-controls span {
   min-width: 95px;
+
   text-align: center;
 }
+
 
 /* ============================================================
    EMPTY / LOADING
@@ -2668,12 +3117,17 @@ export default function Shipping() {
 .shipping-table-loading,
 .shipping-settings-loading {
   min-height: 250px;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   flex-direction: column;
+
   gap: 11px;
+
   color: #89928c;
+
   font-size: 12px;
 }
 
@@ -2684,9 +3138,13 @@ export default function Shipping() {
 .shipping-spinner,
 .shipping-btn-spinner {
   border: 2px solid #dfe9e1;
+
   border-top-color: #4caf50;
+
   border-radius: 50%;
-  animation: shipping-spin 0.75s linear infinite;
+
+  animation:
+    shipping-spin 0.75s linear infinite;
 }
 
 .shipping-spinner {
@@ -2707,38 +3165,54 @@ export default function Shipping() {
 
 .shipping-empty {
   min-height: 320px;
+
   padding: 35px 20px;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   flex-direction: column;
+
   text-align: center;
 }
 
 .shipping-empty-icon {
   width: 65px;
   height: 65px;
+
   margin-bottom: 14px;
+
   border-radius: 17px;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   background: #f0f7f1;
   color: #4b9850;
+
   font-size: 27px;
 }
 
 .shipping-empty h3 {
   margin: 0 0 6px;
+
   color: #364139;
+
   font-size: 15px;
 }
 
 .shipping-empty p {
   margin: 0 0 17px;
+
   color: #929b94;
+
   font-size: 12px;
+
+  line-height: 1.5;
 }
+
 
 /* ============================================================
    ERRORS
@@ -2749,21 +3223,29 @@ export default function Shipping() {
 .shipping-form-error {
   display: flex;
   align-items: center;
+
   gap: 9px;
+
   border-radius: 10px;
+
   color: #9b5252;
+
   background: #fff5f5;
+
   border: 1px solid #f0d6d6;
+
   font-size: 12px;
 }
 
 .shipping-inline-error {
   padding: 11px 13px;
+
   margin-bottom: 15px;
 }
 
 .shipping-main-error {
   margin: 0 24px 18px;
+
   padding: 12px 14px;
 }
 
@@ -2772,6 +3254,8 @@ export default function Shipping() {
 }
 
 .shipping-main-error div {
+  min-width: 0;
+
   flex: 1;
 }
 
@@ -2786,17 +3270,28 @@ export default function Shipping() {
 
 .shipping-main-error span {
   color: #aa7777;
+
   font-size: 11px;
+
+  line-height: 1.5;
 }
 
 .shipping-main-error button {
+  flex-shrink: 0;
+
   border: none;
+
   background: #fff;
+
   color: #9b5252;
+
+  font-family: inherit;
   font-size: 11px;
   font-weight: 700;
+
   cursor: pointer;
 }
+
 
 /* ============================================================
    MODAL
@@ -2804,89 +3299,135 @@ export default function Shipping() {
 
 .shipping-modal-overlay {
   position: fixed;
+
   z-index: 9999;
+
   inset: 0;
+
   padding: 25px;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   background: rgba(20, 29, 23, 0.46);
+
   backdrop-filter: blur(4px);
 }
 
 .shipping-modal {
   width: min(720px, 100%);
+
   max-height: calc(100vh - 50px);
+
+  overflow-x: hidden;
   overflow-y: auto;
+
   border-radius: 17px;
+
   background: #fff;
-  box-shadow: 0 25px 70px rgba(18, 31, 22, 0.2);
-  animation: shipping-modal-in 0.2s ease;
+
+  box-shadow:
+    0 25px 70px rgba(18, 31, 22, 0.2);
+
+  animation:
+    shipping-modal-in 0.2s ease;
 }
 
 @keyframes shipping-modal-in {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.99);
+
+    transform:
+      translateY(10px)
+      scale(0.99);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+
+    transform:
+      translateY(0)
+      scale(1);
   }
 }
 
 .shipping-modal-header {
   padding: 20px 22px;
+
   border-bottom: 1px solid #edf0ed;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   gap: 15px;
 }
 
 .shipping-modal-header > div {
+  min-width: 0;
+
   display: flex;
   align-items: center;
+
   gap: 12px;
 }
 
 .shipping-modal-icon {
   width: 43px;
   height: 43px;
+
+  flex: 0 0 43px;
+
   border-radius: 12px;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   background: #edf7ee;
   color: #2e7d32;
+
   font-size: 19px;
 }
 
 .shipping-modal-header h2 {
   margin: 0;
+
   color: #263129;
+
   font-size: 17px;
   font-weight: 800;
 }
 
 .shipping-modal-header p {
   margin: 4px 0 0;
+
   color: #8b948e;
+
   font-size: 11px;
 }
 
 .shipping-modal-header > button {
   width: 34px;
   height: 34px;
+
+  flex: 0 0 34px;
+
   border: none;
+
   border-radius: 9px;
+
   background: #f5f6f5;
   color: #6d776f;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   cursor: pointer;
+
+  transition: background 0.2s ease;
 }
 
 .shipping-modal-header > button:hover {
@@ -2907,30 +3448,41 @@ export default function Shipping() {
 
 .shipping-form-section-title {
   margin-bottom: 13px;
+
   color: #3b463e;
+
   font-size: 12px;
   font-weight: 800;
 }
 
 .shipping-form-section-title span {
   position: relative;
+
   padding-right: 10px;
 }
 
 .shipping-form-section-title span::before {
   content: "";
+
   position: absolute;
+
   right: 0;
   top: 2px;
+
   width: 3px;
   height: 13px;
+
   border-radius: 4px;
+
   background: #4caf50;
 }
 
 .shipping-form-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
   gap: 14px;
 }
 
@@ -2944,14 +3496,18 @@ export default function Shipping() {
 
 .shipping-form-group label {
   display: block;
+
   margin-bottom: 7px;
+
   color: #475149;
+
   font-size: 11px;
   font-weight: 700;
 }
 
 .shipping-form-group label span {
   color: #d05e5e;
+
   margin-right: 3px;
 }
 
@@ -2959,13 +3515,19 @@ export default function Shipping() {
 .shipping-form-group textarea,
 .shipping-form-group select {
   width: 100%;
+
   border: 1px solid #dfe5e0;
+
   border-radius: 9px;
+
   background: #fff;
   color: #303a32;
+
   outline: none;
+
   font-family: inherit;
   font-size: 12px;
+
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease;
@@ -2974,13 +3536,17 @@ export default function Shipping() {
 .shipping-form-group input,
 .shipping-form-group select {
   height: 41px;
+
   padding: 0 11px;
 }
 
 .shipping-form-group textarea {
-  resize: vertical;
   min-height: 80px;
+
   padding: 10px 11px;
+
+  resize: vertical;
+
   line-height: 1.6;
 }
 
@@ -2988,21 +3554,31 @@ export default function Shipping() {
 .shipping-form-group textarea:focus,
 .shipping-form-group select:focus {
   border-color: #66a96a;
-  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.08);
+
+  box-shadow:
+    0 0 0 3px rgba(76, 175, 80, 0.08);
 }
 
 .shipping-form-group input:disabled {
   background: #f2f4f2;
+
   color: #929a94;
+
   cursor: not-allowed;
 }
 
 .shipping-form-group small {
   display: block;
+
   margin-top: 5px;
+
   color: #9ba39d;
+
   font-size: 9px;
+
+  line-height: 1.5;
 }
+
 
 /* ============================================================
    FORM PRICE
@@ -3018,13 +3594,18 @@ export default function Shipping() {
 
 .shipping-form-input-suffix span {
   position: absolute;
+
   left: 11px;
   top: 50%;
+
   transform: translateY(-50%);
+
   color: #879089;
+
   font-size: 10px;
   font-weight: 700;
 }
+
 
 /* ============================================================
    OPTIONS
@@ -3032,39 +3613,64 @@ export default function Shipping() {
 
 .shipping-options {
   display: flex;
+
   flex-direction: column;
+
   gap: 9px;
 }
 
 .shipping-option {
   padding: 14px;
+
   border: 1px solid #e7ece8;
+
   border-radius: 11px;
+
   background: #fbfcfb;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   gap: 15px;
+
   cursor: pointer;
+
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
 }
 
 .shipping-option:hover {
   border-color: #d6e4d8;
+
+  background: #fff;
+}
+
+.shipping-option > div {
+  min-width: 0;
 }
 
 .shipping-option strong {
   display: block;
+
   margin-bottom: 4px;
+
   color: #39443c;
+
   font-size: 11px;
 }
 
 .shipping-option div span {
   display: block;
+
   color: #929b94;
+
   font-size: 10px;
+
   line-height: 1.5;
 }
+
 
 /* ============================================================
    MODAL ERROR
@@ -3072,8 +3678,10 @@ export default function Shipping() {
 
 .shipping-form-error {
   margin-bottom: 18px;
+
   padding: 11px 13px;
 }
+
 
 /* ============================================================
    MODAL FOOTER
@@ -3081,26 +3689,36 @@ export default function Shipping() {
 
 .shipping-modal-footer {
   margin-top: 24px;
+
   padding-top: 17px;
+
   border-top: 1px solid #edf0ed;
+
   display: flex;
   justify-content: flex-start;
+
   gap: 9px;
 }
 
 .shipping-modal-cancel,
 .shipping-modal-save {
   min-height: 41px;
+
   padding: 0 17px;
+
   border-radius: 9px;
+
   font-family: inherit;
+
   font-size: 12px;
   font-weight: 700;
+
   cursor: pointer;
 }
 
 .shipping-modal-cancel {
   border: 1px solid #e1e6e2;
+
   background: #fff;
   color: #68736b;
 }
@@ -3111,9 +3729,12 @@ export default function Shipping() {
 
 .shipping-modal-save {
   border: none;
+
   background: #2e7d32;
   color: #fff;
-  box-shadow: 0 5px 14px rgba(46, 125, 50, 0.14);
+
+  box-shadow:
+    0 5px 14px rgba(46, 125, 50, 0.14);
 }
 
 .shipping-modal-save:hover {
@@ -3123,8 +3744,10 @@ export default function Shipping() {
 .shipping-modal-cancel:disabled,
 .shipping-modal-save:disabled {
   opacity: 0.6;
+
   cursor: not-allowed;
 }
+
 
 /* ============================================================
    TOAST
@@ -3132,42 +3755,62 @@ export default function Shipping() {
 
 .shipping-toast {
   position: fixed;
+
   z-index: 10000;
+
   top: 22px;
   left: 22px;
+
   min-width: 280px;
   max-width: 420px;
+
   padding: 12px 14px;
+
   border-radius: 11px;
+
   display: flex;
   align-items: center;
+
   gap: 9px;
-  box-shadow: 0 10px 35px rgba(21, 32, 24, 0.15);
-  animation: shipping-toast-in 0.25s ease;
+
+  box-shadow:
+    0 10px 35px rgba(21, 32, 24, 0.15);
+
+  animation:
+    shipping-toast-in 0.25s ease;
+
   font-size: 12px;
 }
 
 @keyframes shipping-toast-in {
   from {
     opacity: 0;
-    transform: translateY(-8px);
+
+    transform:
+      translateY(-8px);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
+
+    transform:
+      translateY(0);
   }
 }
 
 .shipping-toast-success {
   color: #286c30;
+
   background: #f0f9f1;
+
   border: 1px solid #d1e9d3;
 }
 
 .shipping-toast-error {
   color: #9a5151;
+
   background: #fff5f5;
+
   border: 1px solid #f0d5d5;
 }
 
@@ -3176,117 +3819,250 @@ export default function Shipping() {
 }
 
 .shipping-toast span {
+  min-width: 0;
+
   flex: 1;
+
+  line-height: 1.5;
 }
 
 .shipping-toast button {
   width: 25px;
   height: 25px;
+
+  flex: 0 0 25px;
+
   padding: 0;
+
   border: none;
+
   background: transparent;
+
   color: inherit;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   cursor: pointer;
 }
 
+
 /* ============================================================
-   RESPONSIVE
+   RESPONSIVE — TABLET
 ============================================================ */
 
 @media (max-width: 1200px) {
   .shipping-settings-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
   }
 
   .shipping-stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 850px) {
-  .shipping-page {
-    padding: 20px;
-  }
-
-  .shipping-header-content {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .shipping-primary-btn {
-    width: 100%;
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
   }
 
   .shipping-filters {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns:
+      minmax(220px, 1fr)
+      150px
+      150px;
+  }
+}
+
+
+/* ============================================================
+   RESPONSIVE — SMALL LAPTOP / TABLET
+============================================================ */
+
+@media (max-width: 900px) {
+  .shipping-page {
+    width: 100%;
+
+    margin-left: 0;
+
+    padding:
+      0 24px 28px;
+  }
+
+  .shipping-header {
+    padding:
+      24px 0 20px;
+  }
+
+  .shipping-header-content {
+    gap: 18px;
+  }
+
+  .shipping-title-wrapper h1 {
+    font-size: 24px;
+  }
+
+  .shipping-title-wrapper p {
+    font-size: 13px;
+  }
+
+  .shipping-filters {
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(140px, 160px);
+
+    padding:
+      0 20px 18px;
   }
 
   .shipping-search {
     grid-column: 1 / -1;
   }
-
-  .shipping-settings-footer {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .shipping-save-settings-btn {
-    width: 100%;
-  }
 }
+
+
+/* ============================================================
+   RESPONSIVE — MOBILE
+============================================================ */
 
 @media (max-width: 650px) {
   .shipping-page {
-    padding: 14px;
+    padding:
+      0 14px 20px;
+  }
+
+  .shipping-header {
+    padding:
+      18px 0 17px;
+  }
+
+  .shipping-header-content {
+    align-items: stretch;
+
+    flex-direction: column;
+
+    gap: 16px;
   }
 
   .shipping-title-wrapper {
     align-items: flex-start;
+
+    gap: 11px;
   }
 
   .shipping-title-icon {
     width: 45px;
     height: 45px;
+
+    flex-basis: 45px;
+
     border-radius: 12px;
+
     font-size: 20px;
   }
 
   .shipping-title-wrapper h1 {
-    font-size: 22px;
+    font-size: 21px;
   }
 
   .shipping-title-wrapper p {
+    margin-top: 4px;
+
     font-size: 12px;
-    line-height: 1.5;
+
+    line-height: 1.55;
+  }
+
+  .shipping-primary-btn {
+    width: 100%;
+
+    min-height: 42px;
   }
 
   .shipping-settings-card {
     padding: 17px;
+
+    border-radius: 15px;
   }
 
   .shipping-card-heading {
     align-items: flex-start;
+
+    margin-bottom: 18px;
+  }
+
+  .shipping-card-heading-icon {
+    width: 39px;
+    height: 39px;
+
+    flex-basis: 39px;
+  }
+
+  .shipping-card-heading h2,
+  .shipping-methods-header h2 {
+    font-size: 16px;
+  }
+
+  .shipping-card-heading p,
+  .shipping-methods-header p {
+    font-size: 11px;
   }
 
   .shipping-settings-grid {
     grid-template-columns: 1fr;
+
+    gap: 10px;
+  }
+
+  .shipping-setting-box {
+    min-height: auto;
+
+    padding: 13px;
+  }
+
+  .shipping-setting-field {
+    padding: 13px;
+  }
+
+  .shipping-settings-footer {
+    align-items: stretch;
+
+    flex-direction: column;
+
+    gap: 12px;
+  }
+
+  .shipping-free-preview {
+    align-items: flex-start;
+  }
+
+  .shipping-save-settings-btn {
+    width: 100%;
   }
 
   .shipping-stats-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+
     gap: 9px;
   }
 
   .shipping-stat-card {
     padding: 13px;
+
+    gap: 10px;
+
+    border-radius: 12px;
   }
 
   .shipping-stat-icon {
     width: 36px;
     height: 36px;
+
+    flex-basis: 36px;
+
+    font-size: 16px;
+  }
+
+  .shipping-stat-card span {
+    font-size: 10px;
   }
 
   .shipping-stat-card strong {
@@ -3295,8 +4071,12 @@ export default function Shipping() {
 
   .shipping-methods-header {
     padding: 17px;
+
     align-items: flex-start;
+
     flex-direction: column;
+
+    gap: 13px;
   }
 
   .shipping-secondary-btn {
@@ -3305,7 +4085,11 @@ export default function Shipping() {
 
   .shipping-filters {
     grid-template-columns: 1fr;
-    padding: 0 17px 17px;
+
+    gap: 9px;
+
+    padding:
+      0 17px 17px;
   }
 
   .shipping-search {
@@ -3318,24 +4102,42 @@ export default function Shipping() {
   }
 
   .shipping-pagination {
+    min-height: auto;
+
     align-items: flex-start;
+
     flex-direction: column;
-    padding: 14px 17px;
+
+    padding:
+      14px 17px;
+
+    gap: 12px;
   }
 
   .shipping-pagination-controls {
     width: 100%;
+
     justify-content: space-between;
+  }
+
+  .shipping-pagination-controls span {
+    min-width: auto;
   }
 
   .shipping-modal-overlay {
     padding: 10px;
+
     align-items: flex-end;
   }
 
   .shipping-modal {
-    max-height: calc(100vh - 20px);
-    border-radius: 16px 16px 0 0;
+    width: 100%;
+
+    max-height:
+      calc(100vh - 20px);
+
+    border-radius:
+      16px 16px 0 0;
   }
 
   .shipping-modal-header {
@@ -3356,11 +4158,16 @@ export default function Shipping() {
 
   .shipping-modal-footer {
     position: sticky;
+
     bottom: 0;
+
     margin-left: -17px;
     margin-right: -17px;
     margin-bottom: -17px;
-    padding: 13px 17px;
+
+    padding:
+      13px 17px;
+
     background: #fff;
   }
 
@@ -3373,10 +4180,16 @@ export default function Shipping() {
     top: 10px;
     left: 10px;
     right: 10px;
+
     min-width: 0;
     max-width: none;
   }
 }
+
+
+/* ============================================================
+   RESPONSIVE — SMALL MOBILE
+============================================================ */
 
 @media (max-width: 420px) {
   .shipping-stats-grid {
@@ -3388,18 +4201,92 @@ export default function Shipping() {
   }
 
   .shipping-title-wrapper {
-    gap: 10px;
+    gap: 9px;
   }
 
   .shipping-title-wrapper h1 {
     font-size: 20px;
   }
 
+  .shipping-title-wrapper p {
+    font-size: 11px;
+  }
+
   .shipping-primary-btn {
     min-height: 42px;
   }
-}`}
-      </style>
+
+  .shipping-table th {
+    padding:
+      12px 14px;
+  }
+
+  .shipping-table td {
+    padding:
+      14px;
+  }
+
+  .shipping-modal-header h2 {
+    font-size: 16px;
+  }
+}
+
+
+/* ============================================================
+   VERY SMALL DEVICES
+============================================================ */
+
+@media (max-width: 360px) {
+  .shipping-page {
+    padding:
+      0 10px 16px;
+  }
+
+  .shipping-title-icon {
+    width: 42px;
+    height: 42px;
+
+    flex-basis: 42px;
+  }
+
+  .shipping-title-wrapper h1 {
+    font-size: 18px;
+  }
+
+  .shipping-title-wrapper p {
+    font-size: 10px;
+  }
+
+  .shipping-settings-card {
+    padding: 14px;
+  }
+
+  .shipping-methods-header {
+    padding: 14px;
+  }
+
+  .shipping-filters {
+    padding:
+      0 14px 14px;
+  }
+
+  .shipping-main-error {
+    margin-right: 14px;
+    margin-left: 14px;
+  }
+
+  .shipping-stat-card {
+    padding: 12px;
+  }
+}
+
+`}
+</style>
+      
     </div>
+
+    </div>
+
+    
   );
 }
