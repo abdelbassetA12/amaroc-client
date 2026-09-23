@@ -2,20 +2,14 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
  
 import AdminHeader from "../../components/admin/AdminHeader";
 import AdminSidebar from "../../components/admin/AdminSidebar";
+import API_BASE from "../../config/api";
 /* ============================================================
    API CONFIG
    ============================================================ */
 
-const API_ROOT = `${import.meta.env.VITE_API_URL || ""}/api/orders`;
+ 
 
-/*
-  إذا كان مشروعك يستعمل مسارًا مختلفًا للـ orders،
-  عدّل API_ROOT فقط.
-
-  أمثلة:
-  /api/orders
-  https://your-api.com/api/orders
-*/
+ 
 
 const REQUEST_OPTIONS = {
   credentials: "include",
@@ -413,7 +407,8 @@ function OrderDetails({
 
     try {
       const result = await apiRequest(
-        `${API_ROOT}/admin/${order._id}/status`,
+        `${API_BASE}/admin/${order._id}/status`,
+       
         {
           method: "PATCH",
           body: JSON.stringify({
@@ -442,7 +437,7 @@ function OrderDetails({
 
     try {
       const result = await apiRequest(
-        `${API_ROOT}/admin/${order._id}/payment`,
+        `${API_BASE}/admin/${order._id}/payment`,
         {
           method: "PATCH",
           body: JSON.stringify({
@@ -477,7 +472,7 @@ function OrderDetails({
 
     try {
       const result = await apiRequest(
-        `${API_ROOT}/admin/${order._id}/cancel`,
+        `${API_BASE}/admin/${order._id}/cancel`,
         {
           method: "PATCH",
           body: JSON.stringify({
