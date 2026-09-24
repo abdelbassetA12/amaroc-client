@@ -20,6 +20,7 @@ import {
 } from "react-icons/fi";
 import AdminHeader from "../../components/admin/AdminHeader";
 import AdminSidebar from "../../components/admin/AdminSidebar";
+import Loading from "../../components/common/Loading";
 import API_BASE from "../../config/api";
  
 
@@ -754,6 +755,10 @@ export default function Shipping() {
       deleted,
     };
   }, [methods, pagination.total]);
+
+ if (loading) {
+  return <Loading text="جاري تحميل الطلبات" />;
+}
 
   /* ============================================================
      RENDER

@@ -31,6 +31,7 @@ import {
  import API_BASE from "../../config/api";
 import AdminHeader from "../../components/admin/AdminHeader";
 import AdminSidebar from "../../components/admin/AdminSidebar";
+import Loading from "../../components/common/Loading";
 
  
 
@@ -774,7 +775,10 @@ export default function Products() {
   // =========================================================
   // LOADING
   // =========================================================
-
+  if (loading) {
+  return <Loading text="جاري تحميل الطلبات" />;
+}
+/*
   if (loading) {
     return (
       <div className="products-page">
@@ -790,6 +794,7 @@ export default function Products() {
       </div>
     );
   }
+    */
 
   // =========================================================
   // RENDER

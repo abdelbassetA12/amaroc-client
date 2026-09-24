@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
  
 import AdminHeader from "../../components/admin/AdminHeader";
 import AdminSidebar from "../../components/admin/AdminSidebar";
+import Loading from "../../components/common/Loading";
 import API_BASE from "../../config/api";
 /* ============================================================
    API CONFIG
@@ -1265,6 +1266,11 @@ export default function Orders() {
 
   const hasFilters =
     Boolean(search) || Boolean(status);
+
+
+    if (loading) {
+  return <Loading text="جاري تحميل الطلبات" />;
+}
 
   /* ==========================================================
      RENDER
