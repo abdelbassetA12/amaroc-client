@@ -407,7 +407,7 @@ function OrderDetails({
 
     try {
       const result = await apiRequest(
-        `${API_BASE}/admin/${order._id}/status`,
+        `${API_BASE}/api/orders/admin/${order._id}/status`,
        
         {
           method: "PATCH",
@@ -437,7 +437,7 @@ function OrderDetails({
 
     try {
       const result = await apiRequest(
-        `${API_BASE}/admin/${order._id}/payment`,
+        `${API_BASE}/api/orders/admin/${order._id}/payment`,
         {
           method: "PATCH",
           body: JSON.stringify({
@@ -472,7 +472,7 @@ function OrderDetails({
 
     try {
       const result = await apiRequest(
-        `${API_BASE}/admin/${order._id}/cancel`,
+        `${API_BASE}/api/orders/admin/${order._id}/cancel`,
         {
           method: "PATCH",
           body: JSON.stringify({
@@ -1152,7 +1152,7 @@ export default function Orders() {
         }
 
         const result = await apiRequest(
-          `${API_ROOT}/admin?${params.toString()}`
+          `${API_BASE}/api/orders/admin?${params.toString()}`
         );
 
         setOrders(result.orders || []);
@@ -1211,7 +1211,7 @@ export default function Orders() {
 
     try {
       const result = await apiRequest(
-        `${API_ROOT}/admin/${order._id}`
+        `${API_BASE}/api/orders/admin/${order._id}`
       );
 
       setSelectedOrder(result.order);
