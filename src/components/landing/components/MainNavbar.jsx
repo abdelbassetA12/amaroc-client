@@ -105,10 +105,7 @@ export default function MainNavbar() {
             path: "/products",
             label: "المنتجات"
         },
-        {
-            path: "/product",
-            label: "المنتجات"
-        },
+        
         {
             path: "/categories",
             label: "الفئات"

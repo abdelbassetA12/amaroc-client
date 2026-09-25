@@ -21,14 +21,14 @@ import CartDrawer from "./components/cart/CartDrawer";
 
 // Store pages
 import Home from "./pages/home/Home";
-import Products from "./pages/home/Products";
+import Product from "./pages/home/Product";
 import ProductDetails from "./pages/home/ProductDetails";
 import Categories from "./pages/home/Categories";
 import NewArrivals from "./pages/home/NewArrivals";
 import Offers from "./pages/home/Offers";
 import Checkout from "./pages/home/Checkout";
 import Search from "./pages/home/Search";
-import Product from "./pages/home/Product";
+import Products from "./pages/home/Products";
 import About from "./pages/home/About";
 import Shipping from "./pages/home/Shipping";
 import TrackOrder from "./pages/home/TrackOrder";
